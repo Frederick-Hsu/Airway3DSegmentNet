@@ -1,0 +1,8 @@
+# The following file extensions and directories or patterns will be ignored by git tracking system:
+
+*.pyc
+*.npy
+*.nii.gz
+*.pkl
+
+.ipynb_checkpoints/
