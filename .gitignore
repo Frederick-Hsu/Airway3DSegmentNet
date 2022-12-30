@@ -4,5 +4,8 @@
 *.npy
 *.nii.gz
 *.pkl
+.xml
+*.iml
 
+.idea/
 .ipynb_checkpoints/
