@@ -6,6 +6,7 @@
 *.pkl
 .xml
 *.iml
+*.pdf
 
 .idea/
 .ipynb_checkpoints/
