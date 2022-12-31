@@ -137,7 +137,7 @@ if __name__ == "__main__":
     # one_CT_3D_label = io.imread(raw_CT_label_path, plugin='simpleitk')
     
     crop_cube_size = (256, 256, 256)
-    stride = (128, 256, 256)
+    stride = (128, 128, 128)
     
     cropped_cube_image_list = crop_CT_3D_image(one_CT_3D_image, crop_cube_size, stride)
     # cropped_cube_label_list = crop_CT_3D_image(one_CT_3D_label, crop_cube_size, stride)
