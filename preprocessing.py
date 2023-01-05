@@ -6,6 +6,7 @@
 #
 #
 
+import pdb
 
 import numpy as np
 import logging
@@ -59,6 +60,7 @@ def crop_CT_3D_image(one_CT_3D_image, crop_cube_size, stride):
             len(np.arange(0, img_shape[1], stride[1])) * \
             len(np.arange(0, img_shape[2], stride[2]))
     
+    pdb.set_trace()
     cropped_cube_list = []
     
     count = 0
@@ -133,6 +135,7 @@ if __name__ == "__main__":
     raw_CT_label_path = "../Dataset/ATM22/labelsTr/ATM_010_0000.nii.gz"
     
     from skimage import io
+    pdb.set_trace()
     one_CT_3D_image = io.imread(raw_CT_image_path, plugin='simpleitk')
     # one_CT_3D_label = io.imread(raw_CT_label_path, plugin='simpleitk')
     
