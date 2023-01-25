@@ -7,6 +7,9 @@
 *.xml
 *.iml
 *.pdf
+*.pkl
 
 .idea/
 .ipynb_checkpoints/*
+.ipynb_checkpoints/
+results/
