@@ -36,7 +36,7 @@ def augment_jittering_for_imagecube(split, cube_shape):
         jitter_range = (depth_end_index - depth_start_index) * 32
     else:
         jitter_range = (depth_end_index - depth_start_index) * 2
-    log.warning("Jitter range = {0}".format(jitter_range))
+    log.warning("\nJitter range = {0}".format(jitter_range))
     jitter_range_half = jitter_range // 2
 
     cnt = 0
@@ -178,53 +178,6 @@ class ATM22AirwayDataset(Dataset):
                                                  all_label_data_in_memory,
                                                  label_list,
                                                  cube_list)
-            r'''
-            for each_case_dict in data_file_names:
-                image_file_path = each_case_dict['image']
-                assert os.path.exists(image_file_path) is True
-                label_file_path = each_case_dict['label']
-                assert  os.path.exists(label_file_path) is True
-
-                images_np, origin, spacing = load_CT_scan_3D_image(image_file_path)
-                splits, num_DHW, origin_shape = self.split_comber.split(images_np)
-                labels_np, _, _ = load_CT_scan_3D_image(label_file_path)
-
-                case_name = (image_file_path.split('/')[-1]).split("_clean_hu")[0]
-                print("Case name: {0} had been splitted into: \t{1} small cubes".format(case_name, len(splits)))
-
-                log.warning("\timage.shape = {0}, image.origin = {1}, image.spacing = {2}mm"
-                            .format(images_np.shape, origin, spacing))
-                log.warning("\tlabel.shape = {0}".format(labels_np.shape))
-                #-----------------------------------------------------------------------------------
-
-                all_image_data_in_memory[case_name] = [images_np, origin, spacing]
-                all_label_data_in_memory[case_name] = labels_np
-
-                valid_cubes = []
-                for n in range(len(splits)):
-                    # Check whether the sub-cube is suitable
-                    cur_split = splits[n]
-                    label_cube = labels_np[cur_split[0][0]:cur_split[0][1],
-                                           cur_split[1][0]:cur_split[1][1],
-                                           cur_split[2][0]:cur_split[2][1]]
-
-                    pixels_count_in_curr_label_cube = np.sum(label_cube)
-                    label_list.append(pixels_count_in_curr_label_cube)
-                    # screening out the valid label cube
-                    if pixels_count_in_curr_label_cube > 0:
-                        cur_list = [case_name, cur_split, n, num_DHW, origin_shape, 'Y']
-                        log.warning("\tcube #{0}, \tsplit index range: {1}".format(n, cur_split))
-                        log.warning("\t           \tin current label cube, it has pixels count: {0}"
-                                    .format(pixels_count_in_curr_label_cube))
-                        valid_cubes.append(cur_list)
-
-                random.shuffle(valid_cubes)
-                if self.rand_sel:
-                    # Only choose random number of patches for training
-                    cube_list.append(valid_cubes)
-                else:
-                    cube_list += valid_cubes
-            '''
         elif self.phase == "val":
             valset_data_files = self.dataset['val']
             self.caseNum += len(valset_data_files)
@@ -358,9 +311,9 @@ class ATM22AirwayDataset(Dataset):
         wrapped data tensor and name, shape, origin, in the torch.tensor format
         '''
         start_time = time.time()
-        log.warning("start_time = {0}".format(start_time))
+        # log.warning("start_time = {0}".format(start_time))
         fraction = int(str(start_time % 1)[2:8])
-        log.warning("fraction = {0}".format(fraction))
+        # log.warning("fraction = {0}".format(fraction))
         np.random.seed(fraction)
 
         if self.phase == 'train' and self.rand_sel:
@@ -423,10 +376,10 @@ class ATM22AirwayDataset(Dataset):
         image_cube = image_cube[np.newaxis, ...]
         label_cube = label_cube[np.newaxis, ...]
 
-        log.warning("ATM22AirwayDataset.__getitem__[{0}]".format(index))
+        log.warning("\nATM22AirwayDataset.__getitem__[{0}]".format(index))
         log.warning("Current case-name = {0}, split-ID = {1}".format(currNameID, currSplitID))
         log.warning("\timage_cube.shape = {0}, label_cube.shape = {1}, "
-                    "raw CT 3dimage.spacing = {2}, 3dimage.shape = {3}, num_DHW = {4}"
+                    "raw CT 3dimage.spacing = {2}, 3dimage.shape = {3}, num_DHW = {4}\n"
                     .format(image_cube.shape, label_cube.shape, curr_spacing, currShape, currNumDHW))
 
         return torch.from_numpy(image_cube).float(), \
