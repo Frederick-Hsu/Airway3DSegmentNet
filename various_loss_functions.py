@@ -9,7 +9,7 @@
 
 
 import torch
-
+import torch.nn.functional as F
 
 # hyper-parameters:
 smooth = 1.0
@@ -37,7 +37,35 @@ def dice_loss(predict, groundtruth):
 
 #---------------------------------------------------------------------------------------------------
 def attention_distillation_loss(predict, groundtruth, encoder_flag=True):
-    pass
+    r'''
+    Attention distillation loss
+
+    :param predict: input prediction
+    :param groundtruth: input ground-truth
+    :param encoder_flag: True to enable the encoder-path AD,
+                         False to enable the decoder-path AD
+    '''
+    groundtruth = groundtruth.detach()
+    if  (groundtruth.size(-1) == predict.size(-1)) and \
+        (groundtruth.size(-2) == predict.size(-2)):
+        # ground-truth and prediction have the same spatial resolution
+        pass
+    else:
+        if encoder_flag == True:
+            # groundtruth is smaller than the predict, use consecutive layers with scale factor 2
+            groundtruth = F.interpolate(groundtruth, scale_factor=2, mode='trilinear')
+        else:
+            # groundtruth is bigger than the predict, use consecutive layers with scale factor 2
+            predict = F.interpolate(predict, scale_factor=2, mode='trilinear')
+
+    num_batches = predict.size(0)
+    predict_flatten = predict.view(num_batches, -1)
+    groundtruth_flatten = groundtruth.view(num_batches, -1)
+    predict_flatten_sofmax = F.softmax(predict_flatten, dim=1)
+    groundtruth_flatten_softmax = F.softmax(groundtruth_flatten, dim=1)
+
+    return F.mse_loss(predict_flatten_sofmax, groundtruth_flatten_softmax)
+
 
 
 #---------------------------------------------------------------------------------------------------
@@ -67,7 +95,7 @@ def focal_loss(predict, groundtruth, alpha=0.25, gamma=2.0):
 
     if (predict_flatten_negative.size(0) != 0) and (groundtruth_flatten_negative.size(0) != 0):
         # negative samples
-        log_neg = torch.log(1.0 - groundtruth_flatten_negative)
+        log_neg = torch.log(1.0 - predict_flatten_negative)
         loss += -1.0 * torch.mean(torch.pow(predict_flatten_negative, gamma) * log_neg) * (1.0 - alpha)
 
     return loss
@@ -77,4 +105,4 @@ def focal_loss(predict, groundtruth, alpha=0.25, gamma=2.0):
 def binary_cross_entropy_loss(predict, groundtruth):
     groundtruth_flatten = groundtruth.view(-1).float()
     predict_flatten = predict.view(-1).float()
-    return torch.nn.functional.binary_cross_entropy(predict_flatten, groundtruth_flatten)
+    return F.binary_cross_entropy(predict_flatten, groundtruth_flatten)
