@@ -142,6 +142,9 @@ class Airway3DSegmentation:
 
     #-----------------------------------------------------------------------------------------------
     def init_optimizer(self):
+        self.cli_args.lr_stage = self.config['lr_stage']
+        self.cli_args.lr_preset = self.config['lr']
+
         if not self.cli_args.sgd:
             optimizer = torch.optim.Adam(self.airway_seg_model.parameters(), lr=1e-03)
         else:
