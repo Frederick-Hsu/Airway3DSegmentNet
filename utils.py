@@ -32,6 +32,25 @@ def load_CT_scan_3D_image(niigz_file_name):
     numpySpacing = np.array(list(reversed(itkimage.GetSpacing())))
     return numpyImages, numpyOrigin, numpySpacing
 
+
+def save_CT_scan_3D_image(image, origin, spacing, niigz_file_name):
+    if type(origin) != tuple:
+        if type(origin) == list:
+            origin = tuple(reversed(origin))
+        else:
+            origin = tuple(reversed(origin.tolist()))
+    if type(spacing) != tuple:
+        if type(spacing) == list:
+            spacing = tuple(reversed(spacing))
+        else:
+            spacing = tuple(reversed(spacing.tolist()))
+
+    itkimage = sitk.GetImageFromArray(image, isVector=False)
+    itkimage.SetSpacing(spacing)
+    itkimage.SetOrigin(origin)
+    sitk.WriteImage(itkimage, niigz_file_name, True)
+
+
 def dice_coefficient_np(predict_data, groundtruth_data):
     r'''
     Calculate the dice coefficient in the numpy type.
@@ -69,6 +88,13 @@ def accuracy_np(predict, groundtruth):
     groundtruth_flatten = groundtruth.flatten()
     intersection = np.sum(predict_flatten == groundtruth_flatten)
     return intersection / (len(groundtruth_flatten) + smooth)
+
+
+def normal_min_max(image_np):
+    min = np.amin(image_np)
+    max = np.amax(image_np)
+    norm_array = (image_np - min) / (max - min)
+    return norm_array
 
 
 # Classes ==========================================================================================
