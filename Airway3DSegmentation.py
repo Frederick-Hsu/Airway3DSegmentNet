@@ -9,12 +9,13 @@
 # Copyright(C)  2023    All rights reserved.
 #
 #
-
+import csv
 # system's modules
 import os
 import sys
 from importlib import  import_module
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn.init import xavier_normal_, kaiming_normal_, constant_, normal_
@@ -349,7 +350,7 @@ class Airway3DSegmentation:
         val_dataset = ATM22AirwayDataset(self.config,
                                          phase='val',
                                          split_comber=splitter,
-                                         is_randomly_selected=self.cli_args.randsel)
+                                         is_randomly_selected=False)
 
         val_data_loader = torch.utils.data.DataLoader(val_dataset,
                                                       batch_size=self.cli_args.batch_size,
@@ -397,12 +398,15 @@ class Airway3DSegmentation:
 # Main logics ======================================================================================
 if __name__ == "__main__":
     app = Airway3DSegmentation()
-    
-    log.warning("Performing the training process...")
-    app.training()
-    
-    log.warning("Performing the validating process...")
-    app.validating()
-    
-    print("Performing the testing process...")
-    app.testing()
+
+    if app.cli_args.enable_training == True:
+        log.warning("Performing the training process...")
+        app.training()
+
+    if app.cli_args.enable_validating == True:
+        log.warning("Performing the validating process...")
+        app.validating()
+
+    if app.cli_args.enable_testing == True:
+        print("Performing the testing process...")
+        app.testing()
