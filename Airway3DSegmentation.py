@@ -9,12 +9,13 @@
 # Copyright(C)  2023    All rights reserved.
 #
 #
-
+import csv
 # system's modules
 import os
 import sys
 from importlib import  import_module
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn.init import xavier_normal_, kaiming_normal_, constant_, normal_
@@ -26,10 +27,19 @@ from log_switch import log
 from utils import Logger
 from splitter_combiner import SplitterCombiner
 from ATM22_airway_dataset import ATM22AirwayDataset
-from train_validate_test_network import train_network
+from train_validate_test_network import train_network, validate_test_network
 
 # Functions ========================================================================================
+def save_model_checkpoint(model, use_multigpu, args, save_dir, checkpoint_name):
+    if use_multigpu:
+        state_dict = model.module.state_dict()
+    else:
+        state_dict = model.state_dict()
+    for key in state_dict.keys():
+        state_dict[key] = state_dict[key].cpu()
 
+    torch.save({'state_dict': state_dict, 'args': args},
+               os.path.join(save_dir, checkpoint_name))
 
 # Classes ==========================================================================================
 class Airway3DSegmentation:
@@ -55,34 +65,195 @@ class Airway3DSegmentation:
     #-----------------------------------------------------------------------------------------------
     def training(self):
         train_data_loader = self.prepare_train_dataloader()
+        val_data_loader = self.prepare_validate_dataloader()
+        test_data_loader = self.prepare_test_dataloader()
 
         self.train_loss_list = []
         self.train_accuracy_list = []
         self.train_sensitivity_list = []
         self.train_dice_list = []
+        self.train_ppv_list = []
+
+        self.val_loss_list = []
+        self.val_accuracy_list = []
+        self.val_sensitivity_list = []
+        self.val_dice_list = []
+        self.val_ppv_list = []
+
+        self.test_loss_list = []
+        self.test_accuracy_list = []
+        self.test_sensitivity_list = []
+        self.test_dice_list = []
+        self.test_ppv_list = []
+
+        self.train_epoch_list = []
+        self.val_epoch_list = []
+        self.test_epoch_list = []
 
         for epoch in range(self.cli_args.start_epoch, self.cli_args.epochs + 1):
-            loss, mean_accuracy, mean_sensitivity, mean_dice, mean_ppv = \
+            train_mean_loss, train_mean_accuracy, train_mean_sensitivity, train_mean_dice, train_mean_ppv = \
                 train_network(epoch,
-                              self.airway_seg_model,
-                              train_data_loader,
-                              self.optimizer,
-                              self.cli_args,
-                              self.results_dir)
+                              model=self.airway_seg_model,
+                              data_loader=train_data_loader,
+                              optimizer=self.optimizer,
+                              args=self.cli_args)
 
-            self.train_loss_list.append(loss)
-            self.train_accuracy_list.append(mean_accuracy)
-            self.train_sensitivity_list.append(mean_sensitivity)
-            self.train_dice_list.append(mean_dice)
+            self.train_loss_list.append(train_mean_loss)
+            self.train_accuracy_list.append(train_mean_accuracy)
+            self.train_sensitivity_list.append(train_mean_sensitivity)
+            self.train_dice_list.append(train_mean_dice)
+            self.train_ppv_list.append(train_mean_ppv)
+            self.train_epoch_list.append(epoch)
 
+            save_model_checkpoint(model=self.airway_seg_model,
+                                  use_multigpu=self.cli_args.multi_gpu_parallel,
+                                  args=self.cli_args,
+                                  save_dir=self.results_dir,
+                                  checkpoint_name="model_latest.ckpt")
+
+            if epoch % self.cli_args.save_freq == 0:
+                save_model_checkpoint(model=self.airway_seg_model,
+                                      use_multigpu=self.cli_args.multi_gpu_parallel,
+                                      args=self.cli_args,
+                                      save_dir=self.results_dir,
+                                      checkpoint_name="model_{0:03}.ckpt".format(epoch))
+
+            #---------------------------------------------------------------------------------------
+            if (epoch == self.cli_args.start_epoch) or (epoch % self.cli_args.val_freq == 0):
+                val_dir = os.path.join(self.results_dir, 'val{0:03}'.format(epoch))
+                if not os.path.exists(val_dir):
+                    os.mkdir(val_dir)
+
+                val_mean_loss, val_mean_accuracy, val_mean_sensitivity, val_mean_dice, val_mean_ppv = \
+                    validate_test_network(epoch,
+                                          phase='val',
+                                          model=self.airway_seg_model,
+                                          data_loader=val_data_loader,
+                                          args=self.cli_args,
+                                          save_dir=val_dir)
+
+                self.val_loss_list.append(val_mean_loss)
+                self.val_accuracy_list.append(val_mean_accuracy)
+                self.val_sensitivity_list.append(val_mean_sensitivity)
+                self.val_dice_list.append(val_mean_dice)
+                self.val_ppv_list.append(val_mean_ppv)
+                self.val_epoch_list.append(epoch)
+
+            #---------------------------------------------------------------------------------------
+            if epoch % self.cli_args.test_freq == 0:
+                test_dir = os.path.join(self.results_dir, "test{0:03}".format(epoch))
+                if not os.path.exists(test_dir):
+                    os.mkdir(test_dir)
+
+                # both val and test phase call the same function "validate_test_network",
+                # only 'phase' and 'data_loader' arguments are different
+                test_mean_loss, test_mean_accuracy, test_mean_sensitivity, test_mean_dice, test_mean_ppv = \
+                    validate_test_network(epoch,
+                                          phase='test',
+                                          model=self.airway_seg_model,
+                                          data_loader=test_data_loader,
+                                          args=self.cli_args,
+                                          save_dir=test_dir)
+
+                self.test_loss_list.append(test_mean_loss)
+                self.test_accuracy_list.append(test_mean_accuracy)
+                self.test_sensitivity_list.append(test_mean_sensitivity)
+                self.test_dice_list.append(test_mean_dice)
+                self.test_ppv_list.append(test_mean_ppv)
+                self.test_epoch_list.append(epoch)
+
+        self._save_metrics()
+        print("Training DONE!")
+
+    def _save_metrics(self):
+        train_metrics_summary = np.array([self.train_epoch_list,
+                                          self.train_loss_list,
+                                          self.train_accuracy_list,
+                                          self.train_sensitivity_list,
+                                          self.train_dice_list,
+                                          self.train_ppv_list])
+        np.save(os.path.join(self.log_dir, "train_metrics_log.npy"), train_metrics_summary)
+
+        val_metrics_summary = np.array([self.val_epoch_list,
+                                        self.val_loss_list,
+                                        self.val_accuracy_list,
+                                        self.val_sensitivity_list,
+                                        self.val_dice_list,
+                                        self.val_ppv_list])
+        np.save(os.path.join(self.log_dir, "val_metrics_log.npy"), val_metrics_summary)
+
+        test_metrics_summary = np.array([self.test_epoch_list,
+                                         self.test_loss_list,
+                                         self.test_accuracy_list,
+                                         self.test_sensitivity_list,
+                                         self.test_dice_list,
+                                         self.test_ppv_list])
+        np.save(os.path.join(self.log_dir, "test_metrics_log.npy"), test_metrics_summary)
+
+        # -------------------------------------------------------------------------------------------
+        logName = os.path.join(self.log_dir, "total_metrics_log.csv")
+        with open(logName, 'w') as csv_fh:
+            writer = csv.writer(csv_fh)
+
+            title_row = ['phase', 'epoch', 'loss', 'accuracy', 'sensitivity', 'dice', 'positive probability']
+            writer.writerow(title_row)
+
+            for index in range(len(self.train_epoch_list)):
+                row = ['train',
+                       self.train_epoch_list[index],
+                       self.train_loss_list[index],
+                       self.train_accuracy_list[index],
+                       self.train_sensitivity_list[index],
+                       self.train_dice_list[index],
+                       self.train_ppv_list[index]]
+                writer.writerow(row)
+
+            for index in range(len(self.val_epoch_list)):
+                rwo = ['validate',
+                       self.val_epoch_list[index],
+                       self.val_loss_list[index],
+                       self.val_accuracy_list[index],
+                       self.val_sensitivity_list[index],
+                       self.val_dice_list[index],
+                       self.val_ppv_list[index]]
+                writer.writerow(row)
+
+            for index in range(len(self.test_epoch_list)):
+                row = ['test',
+                       self.test_epoch_list[index],
+                       self.test_loss_list[index],
+                       self.test_accuracy_list[index],
+                       self.test_sensitivity_list[index],
+                       self.test_dice_list[index],
+                       self.test_ppv_list[index]]
+                writer.writerow(row)
 
     #-----------------------------------------------------------------------------------------------
     def validating(self):
-        pass
+        val_data_loader = self.prepare_validate_dataloader()
+
+        epoch = 1   # Only need to carry out 1 epoch of "validate_network()"
+        val_mean_loss, val_mean_accuracy, val_mean_sensitivity, val_mean_dice, val_mean_ppv = \
+            validate_test_network(epoch,
+                                  phase='val',
+                                  model=self.airway_seg_model,
+                                  data_loader=val_data_loader,
+                                  args=self.cli_args,
+                                  save_dir=os.path.join(self.results_dir, 'validate'))
+        print("Validating DONE!")
 
     #-----------------------------------------------------------------------------------------------
     def testing(self):
-        pass
+        test_data_loader = self.prepare_test_dataloader()
+
+        epoch = 1
+        test_mean_loss, test_mean_accuracy, test_mean_sensitivity, test_mean_dice, test_mean_ppv = \
+            validate_test_network(epoch,
+                                  phase='test',
+                                  data_loader=test_data_loader,
+                                  args=self.cli_args,
+                                  save_dir=os.path.join(self.results_dir, 'test'))
+        print("Testing DONE!")
 
     #-----------------------------------------------------------------------------------------------
     def init_load_model(self):
@@ -179,7 +350,7 @@ class Airway3DSegmentation:
         val_dataset = ATM22AirwayDataset(self.config,
                                          phase='val',
                                          split_comber=splitter,
-                                         is_randomly_selected=self.cli_args.randsel)
+                                         is_randomly_selected=False)
 
         val_data_loader = torch.utils.data.DataLoader(val_dataset,
                                                       batch_size=self.cli_args.batch_size,
@@ -187,6 +358,25 @@ class Airway3DSegmentation:
                                                       num_workers=self.cli_args.num_workers,
                                                       pin_memory=True)
         return val_data_loader
+
+    def prepare_test_dataloader(self):
+        print("------------------------------Load the dataset for testing------------------------------")
+        # Use the same crop_cube_size and crop_stride with validate dataset
+        crop_cube_size = self.cli_args.val_cube_size
+        crop_stride = self.cli_args.val_stride
+        splitter = SplitterCombiner(crop_cube_size, crop_stride)
+
+        test_dataset = ATM22AirwayDataset(self.config,
+                                          phase='test',
+                                          split_comber=splitter,
+                                          is_randomly_selected=False)
+
+        test_data_loader = torch.utils.data.DataLoader(test_dataset,
+                                                       batch_size=self.cli_args.batch_size,
+                                                       shuffle=False,
+                                                       num_workers=self.cli_args.num_workers,
+                                                       pin_memory=True)
+        return test_data_loader
 
     # -----------------------------------------------------------------------------------------------
     def prepare_log_dir(self):
@@ -208,12 +398,15 @@ class Airway3DSegmentation:
 # Main logics ======================================================================================
 if __name__ == "__main__":
     app = Airway3DSegmentation()
-    
-    log.warning("Performing the training process...")
-    app.training()
-    
-    log.warning("Performing the validating process...")
-    app.validating()
-    
-    print("Performing the testing process...")
-    app.testing()
+
+    if app.cli_args.enable_training == True:
+        log.warning("Performing the training process...")
+        app.training()
+
+    if app.cli_args.enable_validating == True:
+        log.warning("Performing the validating process...")
+        app.validating()
+
+    if app.cli_args.enable_testing == True:
+        print("Performing the testing process...")
+        app.testing()

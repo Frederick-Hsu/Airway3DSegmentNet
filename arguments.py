@@ -70,23 +70,23 @@ def InitArguments():
                         type=str,
                         default="")
 
-    parser.add_argument("--enable-test",
-                        help="1 for enabling testing and evaluation, 0 for disabling",
-                        type=int,
-                        default=0)
-    parser.add_argument("--enable-debug-mode",
-                        metavar="TRUE_OR_FALSE",
-                        help="enable or disable the debug mode",
-                        type=bool,
-                        default=False)
-    parser.add_argument("--enable-val-debug",
-                        help="whether to enable the debug mode for validation or not",
-                        type=bool,
-                        default=False)
-    parser.add_argument("--enable-dataloader-debug",
-                        help="whether to enable the debug mode while loading data",
-                        type=bool,
-                        default=False)
+    # parser.add_argument("--enable-test",
+    #                     help="1 for enabling testing and evaluation, 0 for disabling",
+    #                     type=int,
+    #                     default=0)
+    # parser.add_argument("--enable-debug-mode",
+    #                     metavar="TRUE_OR_FALSE",
+    #                     help="enable or disable the debug mode",
+    #                     type=bool,
+    #                     default=False)
+    # parser.add_argument("--enable-val-debug",
+    #                     help="whether to enable the debug mode for validation or not",
+    #                     type=bool,
+    #                     default=False)
+    # parser.add_argument("--enable-dataloader-debug",
+    #                     help="whether to enable the debug mode while loading data",
+    #                     type=bool,
+    #                     default=False)
 
     parser.add_argument("--randsel",
                         metavar="1 or 0",
@@ -144,6 +144,19 @@ def InitArguments():
                         type=int,
                         default=[48, 80, 80],
                         nargs="*")
+
+    parser.add_argument("--enable-training",
+                        help="Whether to enable the training process?",
+                        type=bool,
+                        default=True)
+    parser.add_argument("--enable-validating",
+                        help="Whether to enable the validating process?",
+                        type=bool,
+                        default=False)
+    parser.add_argument("--enable-testing",
+                        help="Whether to enable the testing process?",
+                        type=bool,
+                        default=False)
     
     return parser
 
