@@ -55,25 +55,105 @@ class Airway3DSegmentation:
     #-----------------------------------------------------------------------------------------------
     def training(self):
         train_data_loader = self.prepare_train_dataloader()
+        val_data_loader = self.prepare_validate_dataloader()
+        test_data_loader = self.prepare_test_dataloader()
 
         self.train_loss_list = []
         self.train_accuracy_list = []
         self.train_sensitivity_list = []
         self.train_dice_list = []
+        self.train_ppv_list = []
+
+        self.val_loss_list = []
+        self.val_accuracy_list = []
+        self.val_sensitivity_list = []
+        self.val_dice_list = []
+        self.val_ppv_list = []
+
+        self.test_loss_list = []
+        self.test_accuracy_list = []
+        self.test_sensitivity_list = []
+        self.test_dice_list = []
+        self.test_ppv_list = []
+
+        self.train_epoch_list = []
+        self.val_epoch_list = []
+        self.test_epoch_list = []
 
         for epoch in range(self.cli_args.start_epoch, self.cli_args.epochs + 1):
-            loss, mean_accuracy, mean_sensitivity, mean_dice, mean_ppv = \
+            train_mean_loss, train_mean_accuracy, train_mean_sensitivity, train_mean_dice, train_mean_ppv = \
                 train_network(epoch,
-                              self.airway_seg_model,
-                              train_data_loader,
-                              self.optimizer,
-                              self.cli_args,
-                              self.results_dir)
+                              model=self.airway_seg_model,
+                              data_loader=train_data_loader,
+                              optimizer=self.optimizer,
+                              args=self.cli_args)
 
-            self.train_loss_list.append(loss)
-            self.train_accuracy_list.append(mean_accuracy)
-            self.train_sensitivity_list.append(mean_sensitivity)
-            self.train_dice_list.append(mean_dice)
+            self.train_loss_list.append(train_mean_loss)
+            self.train_accuracy_list.append(train_mean_accuracy)
+            self.train_sensitivity_list.append(train_mean_sensitivity)
+            self.train_dice_list.append(train_mean_dice)
+            self.train_ppv_list.append(train_mean_ppv)
+            self.train_epoch_list.append(epoch)
+
+            save_model_checkpoint(model=self.airway_seg_model,
+                                  use_multigpu=self.cli_args.multi_gpu_parallel,
+                                  args=self.cli_args,
+                                  save_dir=self.results_dir,
+                                  checkpoint_name="model_latest.ckpt")
+
+            if epoch % self.cli_args.save_freq == 0:
+                save_model_checkpoint(model=self.airway_seg_model,
+                                      use_multigpu=self.cli_args.multi_gpu_parallel,
+                                      args=self.cli_args,
+                                      save_dir=self.results_dir,
+                                      checkpoint_name="model_{0:03}.ckpt".format(epoch))
+
+            #---------------------------------------------------------------------------------------
+            if (epoch == self.cli_args.start_epoch) or (epoch % self.cli_args.val_freq == 0):
+                val_dir = os.path.join(self.results_dir, 'val{0:03}'.format(epoch))
+                if not os.path.exists(val_dir):
+                    os.mkdir(val_dir)
+
+                val_mean_loss, val_mean_accuracy, val_mean_sensitivity, val_mean_dice, val_mean_ppv = \
+                    validate_test_network(epoch,
+                                          phase='val',
+                                          model=self.airway_seg_model,
+                                          data_loader=val_data_loader,
+                                          args=self.cli_args,
+                                          save_dir=val_dir)
+
+                self.val_loss_list.append(val_mean_loss)
+                self.val_accuracy_list.append(val_mean_accuracy)
+                self.val_sensitivity_list.append(val_mean_sensitivity)
+                self.val_dice_list.append(val_mean_dice)
+                self.val_ppv_list.append(val_mean_ppv)
+                self.val_epoch_list.append(epoch)
+
+            #---------------------------------------------------------------------------------------
+            if epoch % self.cli_args.test_freq == 0:
+                test_dir = os.path.join(self.results_dir, "test{0:03}".format(epoch))
+                if not os.path.exists(test_dir):
+                    os.mkdir(test_dir)
+
+                # both val and test phase call the same function "validate_test_network",
+                # only 'phase' and 'data_loader' arguments are different
+                test_mean_loss, test_mean_accuracy, test_mean_sensitivity, test_mean_dice, test_mean_ppv = \
+                    validate_test_network(epoch,
+                                          phase='test',
+                                          model=self.airway_seg_model,
+                                          data_loader=test_data_loader,
+                                          args=self.cli_args,
+                                          save_dir=test_dir)
+
+                self.test_loss_list.append(test_mean_loss)
+                self.test_accuracy_list.append(test_mean_accuracy)
+                self.test_sensitivity_list.append(test_mean_sensitivity)
+                self.test_dice_list.append(test_mean_dice)
+                self.test_ppv_list.append(test_mean_ppv)
+                self.test_epoch_list.append(epoch)
+
+        self._save_metrics()
+        print("Training DONE!")
 
 
     #-----------------------------------------------------------------------------------------------
