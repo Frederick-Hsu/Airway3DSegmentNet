@@ -188,6 +188,25 @@ class Airway3DSegmentation:
                                                       pin_memory=True)
         return val_data_loader
 
+    def prepare_test_dataloader(self):
+        print("------------------------------Load the dataset for testing------------------------------")
+        # Use the same crop_cube_size and crop_stride with validate dataset
+        crop_cube_size = self.cli_args.val_cube_size
+        crop_stride = self.cli_args.val_stride
+        splitter = SplitterCombiner(crop_cube_size, crop_stride)
+
+        test_dataset = ATM22AirwayDataset(self.config,
+                                          phase='test',
+                                          split_comber=splitter,
+                                          is_randomly_selected=False)
+
+        test_data_loader = torch.utils.data.DataLoader(test_dataset,
+                                                       batch_size=self.cli_args.batch_size,
+                                                       shuffle=False,
+                                                       num_workers=self.cli_args.num_workers,
+                                                       pin_memory=True)
+        return test_data_loader
+
     # -----------------------------------------------------------------------------------------------
     def prepare_log_dir(self):
         save_dir = self.cli_args.save_dir
