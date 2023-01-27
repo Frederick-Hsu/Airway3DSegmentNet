@@ -21,4 +21,23 @@ python --version
 python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 --save-dir=baseline \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=True \
---encoder-path-ad=False --decoder-path-ad=False
+--encoder-path-ad=False --decoder-path-ad=False \
+--enable-training=True --enable-validating=False --enable-testing=False
+
+
+# Validating
+python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 --save-dir=baseline \
+--train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
+--start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=True \
+--encoder-path-ad=False --decoder-path-ad=False \
+--resume="./results/baseline/model_latest.ckpt" --save-feature=True \
+--enable-training=False --enable-validating=True --enable-testing=False
+
+
+# Testing
+python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 --save-dir=baseline \
+--train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
+--start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=True \
+--encoder-path-ad=False --decoder-path-ad=False \
+--resume="./results/baseline/model_latest.ckpt" --save-feature=True \
+--enable-training=False --enable-validating=False --enable-testing=True
