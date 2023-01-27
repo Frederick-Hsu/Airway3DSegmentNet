@@ -9,10 +9,13 @@
 
 
 # System's modules
+import os
 import time
+import csv
 import torch
 import numpy as np
 from tqdm import tqdm
+from scipy.ndimage.interpolation import zoom
 
 # User-defined modules
 from log_switch import log
@@ -22,6 +25,7 @@ from various_loss_functions import dice_loss, \
                                    attention_distillation_loss
 
 from utils import dice_coefficient_np, positive_predictive_value_np, sensitivity_np, accuracy_np
+from utils import combine_total, combine_total_avg, save_CT_scan_3D_image, normal_min_max
 
 #===================================================================================================
 binary_threshold = 0.5
@@ -38,7 +42,7 @@ def get_learning_rate(epoch, args):
     return lr
 
 
-def train_network(epoch, model, data_loader, optimizer, args, save_dir):
+def train_network(epoch, model, data_loader, optimizer, args):
     model.train()
 
     start_time = time.time()
@@ -77,8 +81,8 @@ def train_network(epoch, model, data_loader, optimizer, args, save_dir):
             predict = predicts[0]
             deepsupervision6, deepsupervision7, deepsupervision8 = predicts[1], predicts[2], predicts[3]
 
-            dice_loss  = dice_loss(predict, label_cube)
-            log.warning("dice_loss_value = {0:.5f}".format(dice_loss.item()))
+            loss  = dice_loss(predict, label_cube)
+            log.warning("dice_loss_value = {0:.5f}".format(loss.item()))
             dice_loss6 = dice_loss(deepsupervision6, label_cube)
             log.warning("dice_loss6_value = {0:.5f}".format(dice_loss6.item()))
             dice_loss7 = dice_loss(deepsupervision7, label_cube)
@@ -143,16 +147,20 @@ def train_network(epoch, model, data_loader, optimizer, args, save_dir):
 
     end_time = time.time()
     mean_dice = np.mean(np.array(dice_list))
-    log.warning("dice_list = {0}".format(dice_list))
-
     mean_dice_hard = np.mean(np.array(dice_hard_list))
-    log.warning("dice_hard_list = {0}".format(dice_hard_list))
     mean_ppv = np.mean(np.array(ppv_list))
     mean_sensitivity = np.mean(np.array(sensitivity_list))
     mean_accuracy = np.mean(np.array(accuracy_list))
     mean_loss = np.mean(np.array(loss_list))
 
-    print("Training phase, epoch = {0}, loss = {1:.4f}, accuracy = {2:.4f}, sensitivity = {3:.4f}, "
+    log.warning("dice_list = {0}".format(dice_list))
+    log.warning("dice_hard_list = {0}".format(dice_hard_list))
+    log.warning("ppv_list = {0}".format(ppv_list))
+    log.warning("sensitivity_list = {0}".format(sensitivity_list))
+    log.warning("accuracy_list = {0}".format(accuracy_list))
+    log.warning("loss_list = {0}".format(loss_list))
+
+    print("Training phase, epoch = #{0}, loss = {1:.4f}, accuracy = {2:.4f}, sensitivity = {3:.4f}, "
           "dice = {4:.4f}, dice-hard = {5:.4f}, positive predictive value = {6:.4f}, "
           "elapsed-time = {7:3.2f}, learning-rate = {8:.6f}\n"
           .format(epoch, mean_loss, mean_accuracy, mean_sensitivity, mean_dice, mean_dice_hard,
