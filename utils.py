@@ -89,6 +89,125 @@ def accuracy_np(predict, groundtruth):
     intersection = np.sum(predict_flatten == groundtruth_flatten)
     return intersection / (len(groundtruth_flatten) + smooth)
 
+def combine_total(output, stride, cubesize):
+    r'''
+    Combine all sub-volume cubes together without average overlapping areas
+
+    :param output: list of all coordinates and voxels of sub-volumes
+    :param stride:
+    :param cubesize:
+    '''
+    # the output is from the curr_gt_info
+    # curr_gt_info's structure:  [curr_gt_data,  curr_splitID, curr_num_DHW, curr_shape, curr_origin, curr_spacing]
+    gt_info = output[0]
+    curr_shape = gt_info[3]
+    curr_origin = gt_info[4]
+    curr_spacing = gt_info[5]
+    curr_num_DHW = gt_info[2]
+
+    num_Depth, num_Height, num_Width = curr_num_DHW[0], gt_info[1], gt_info[2]
+    [depth, height, width] = curr_shape
+
+    if type(cubesize) is not list:
+        cubesize = [cubesize, cubesize, cubesize]
+
+    splits = {}
+    for index in range(len(output)):
+        curr_gt_info = output[index]
+        curr_gt_data = curr_gt_info[0]
+        curr_splitID = int(curr_gt_info[1])
+        splits[curr_splitID] = curr_gt_data
+
+    Cuboid = -100000 * np.ones((depth, height, width), dtype=np.float32)
+    cnt = 0
+    for index_depth in range(num_Depth + 1):
+        for index_height in range(num_Height + 1):
+            for index_width in range(num_Width + 1):
+                depth_start_index   = index_depth  * stride[0]
+                depth_end_index     = index_depth  * stride[0] + cubesize[0]
+                height_start_index  = index_height * stride[1]
+                height_end_index    = index_height * stride[1] + cubesize[1]
+                width_start_index   = index_width  * stride[2]
+                width_end_index     = index_width  * stride[2] + cubesize[2]
+
+                if depth_end_index > depth:
+                    depth_start_index   = depth - cubesize[0]
+                    depth_end_index     = depth
+                if height_end_index > height:
+                    height_start_index  = height - cubesize[1]
+                    height_end_index    = height
+                if width_end_index > width:
+                    width_start_index   = width - cubesize[2]
+                    width_end_index     = width
+
+                split = splits[cnt]
+                Cuboid[ depth_start_index:depth_end_index,
+                       height_start_index:height_end_index,
+                        width_start_index:width_end_index]   = split
+                cnt += 1
+
+    return Cuboid, curr_origin, curr_spacing
+
+def combine_total_avg(output, stride, cubesize):
+    r'''
+    Combine all sub-volume cubes together, and average overlapping areas of prediction
+    '''
+    pred_info = output[0]
+    curr_shape = pred_info[3]
+    curr_origin = pred_info[4]
+    curr_spacing = pred_info[5]
+
+    curr_num_DHW = pred_info[2]
+    num_Depth, num_Height, num_Width = curr_num_DHW[0], curr_num_DHW[1], curr_num_DHW[2]
+    [depth, height, width] = curr_shape
+
+    if type(cubesize) is not list:
+        cubesize = [cubesize, cubesize, cubesize]
+
+    splits = {}
+    for index in range(len(output)):
+        curr_pred_info = output[index]
+        curr_predict_data = curr_pred_info[0]
+        curr_splitID = int(curr_pred_info[1])
+        if not curr_splitID in splits.keys():
+            splits[curr_splitID] = curr_predict_data
+        else:
+            continue
+
+    Cuboid = np.zeros((depth, height, width), dtype=np.float32)
+    count_matrix = np.zeros((depth, height, width), dtype=np.float32)
+
+    cnt = 0
+    for index_depth in range(num_Depth + 1):
+        for index_height in range(num_Height + 1):
+            for index_width in range(num_Width + 1):
+                depth_start_index   = index_depth  * stride[0]
+                depth_end_index     = index_depth  * stride[0] + cubesize[0]
+                height_start_index  = index_height * stride[1]
+                height_end_index    = index_height * stride[1] + cubesize[1]
+                width_start_index   = index_width  * stride[2]
+                width_end_index     = index_width  * stride[2] + cubesize[2]
+                if depth_end_index > depth:
+                    depth_start_index  = depth - cubesize[0]
+                    depth_end_index    = depth
+                if height_end_index > height:
+                    height_start_index = height - cubesize[1]
+                    height_end_index   = height
+                if width_end_index > width:
+                    width_start_index = width - cubesize[2]
+                    width_end_index   = width
+
+                split = splits[cnt]
+                Cuboid[ depth_start_index:depth_end_index,
+                       height_start_index:height_end_index,
+                        width_start_index:width_end_index] += split
+                count_matrix[ depth_start_index:depth_end_index,
+                             height_start_index:height_end_index,
+                              width_start_index:width_end_index] += 1
+                cnt += 1
+
+    Cuboid = Cuboid / count_matrix
+    return Cuboid, curr_origin, curr_spacing
 
 def normal_min_max(image_np):
     min = np.amin(image_np)
