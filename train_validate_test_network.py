@@ -403,3 +403,44 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
     return mean_loss, mean_accuracy, mean_sensitivity, mean_dice, mean_ppv
 
 
+#---------------------------------------------------------------------------------------------------
+def save_metrics_into_csvfile(save_dir, csv_file_name, *metrics):
+    all_results = {'ATM22': []}
+    casename_list = metrics[0]
+    accuracy_list = metrics[1]
+    sensitivity_list = metrics[2]
+    dice_list = metrics[3]
+    ppv_list = metrics[4]
+
+    with open(os.path.join(save_dir, csv_file_name), 'w') as fh:
+        writer = csv.writer(fh)
+
+        title_row = ['name', 'accuracy', 'sensitivity', 'dice', 'positive probability value']
+        writer.writerow(title_row)
+
+        for index in range(len(casename_list)):
+            casename = casename_list[index]
+
+            row = [casename,
+                   float(round(accuracy_list[index] * 100, 3)),
+                   float(round(sensitivity_list[index] * 100, 3)),
+                   float(round(dice_list[index] * 100, 3)),
+                   float(round(ppv_list[index] * 100, 3))]
+            all_results['ATM22'].append([row[1], row[2], row[3], row[4]])
+            writer.writerow(row)
+
+        atm22_results_mean_value = np.mean(np.array(all_results['ATM22']), axis=0)
+        atm22_results_std_deviation = np.std(np.array(all_results['ATM22']), axis=0)
+
+        atm22_mean = ['ATM22 mean value',
+                      atm22_results_mean_value[0],      # accuracy mean value
+                      atm22_results_mean_value[1],      # sensitivity mean value
+                      atm22_results_mean_value[2],      # dice mean value
+                      atm22_results_mean_value[3]]      # ppv mean value
+        atm22_std_deviation = ['ATM22 std deviation',
+                               atm22_results_std_deviation[0],  # accuracy std deviation
+                               atm22_results_std_deviation[1],  # sensitivity std deviation
+                               atm22_results_std_deviation[2],  # dice std deviation
+                               atm22_results_std_deviation[3]]  # ppv std deviation
+        writer.writerow(atm22_mean)
+        writer.writerow(atm22_std_deviation)
