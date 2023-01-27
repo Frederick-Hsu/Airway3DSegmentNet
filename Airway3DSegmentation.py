@@ -26,10 +26,19 @@ from log_switch import log
 from utils import Logger
 from splitter_combiner import SplitterCombiner
 from ATM22_airway_dataset import ATM22AirwayDataset
-from train_validate_test_network import train_network
+from train_validate_test_network import train_network, validate_test_network
 
 # Functions ========================================================================================
+def save_model_checkpoint(model, use_multigpu, args, save_dir, checkpoint_name):
+    if use_multigpu:
+        state_dict = model.module.state_dict()
+    else:
+        state_dict = model.state_dict()
+    for key in state_dict.keys():
+        state_dict[key] = state_dict[key].cpu()
 
+    torch.save({'state_dict': state_dict, 'args': args},
+               os.path.join(save_dir, checkpoint_name))
 
 # Classes ==========================================================================================
 class Airway3DSegmentation:
