@@ -155,14 +155,95 @@ class Airway3DSegmentation:
         self._save_metrics()
         print("Training DONE!")
 
+    def _save_metrics(self):
+        train_metrics_summary = np.array([self.train_epoch_list,
+                                          self.train_loss_list,
+                                          self.train_accuracy_list,
+                                          self.train_sensitivity_list,
+                                          self.train_dice_list,
+                                          self.train_ppv_list])
+        np.save(os.path.join(self.log_dir, "train_metrics_log.npy"), train_metrics_summary)
+
+        val_metrics_summary = np.array([self.val_epoch_list,
+                                        self.val_loss_list,
+                                        self.val_accuracy_list,
+                                        self.val_sensitivity_list,
+                                        self.val_dice_list,
+                                        self.val_ppv_list])
+        np.save(os.path.join(self.log_dir, "val_metrics_log.npy"), val_metrics_summary)
+
+        test_metrics_summary = np.array([self.test_epoch_list,
+                                         self.test_loss_list,
+                                         self.test_accuracy_list,
+                                         self.test_sensitivity_list,
+                                         self.test_dice_list,
+                                         self.test_ppv_list])
+        np.save(os.path.join(self.log_dir, "test_metrics_log.npy"), test_metrics_summary)
+
+        # -------------------------------------------------------------------------------------------
+        logName = os.path.join(self.log_dir, "total_metrics_log.csv")
+        with open(logName, 'w') as csv_fh:
+            writer = csv.writer(csv_fh)
+
+            title_row = ['phase', 'epoch', 'loss', 'accuracy', 'sensitivity', 'dice', 'positive probability']
+            writer.writerow(title_row)
+
+            for index in range(len(self.train_epoch_list)):
+                row = ['train',
+                       self.train_epoch_list[index],
+                       self.train_loss_list[index],
+                       self.train_accuracy_list[index],
+                       self.train_sensitivity_list[index],
+                       self.train_dice_list[index],
+                       self.train_ppv_list[index]]
+                writer.writerow(row)
+
+            for index in range(len(self.val_epoch_list)):
+                rwo = ['validate',
+                       self.val_epoch_list[index],
+                       self.val_loss_list[index],
+                       self.val_accuracy_list[index],
+                       self.val_sensitivity_list[index],
+                       self.val_dice_list[index],
+                       self.val_ppv_list[index]]
+                writer.writerow(row)
+
+            for index in range(len(self.test_epoch_list)):
+                row = ['test',
+                       self.test_epoch_list[index],
+                       self.test_loss_list[index],
+                       self.test_accuracy_list[index],
+                       self.test_sensitivity_list[index],
+                       self.test_dice_list[index],
+                       self.test_ppv_list[index]]
+                writer.writerow(row)
 
     #-----------------------------------------------------------------------------------------------
     def validating(self):
-        pass
+        val_data_loader = self.prepare_validate_dataloader()
+
+        epoch = 1   # Only need to carry out 1 epoch of "validate_network()"
+        val_mean_loss, val_mean_accuracy, val_mean_sensitivity, val_mean_dice, val_mean_ppv = \
+            validate_test_network(epoch,
+                                  phase='val',
+                                  model=self.airway_seg_model,
+                                  data_loader=val_data_loader,
+                                  args=self.cli_args,
+                                  save_dir=os.path.join(self.results_dir, 'validate'))
+        print("Validating DONE!")
 
     #-----------------------------------------------------------------------------------------------
     def testing(self):
-        pass
+        test_data_loader = self.prepare_test_dataloader()
+
+        epoch = 1
+        test_mean_loss, test_mean_accuracy, test_mean_sensitivity, test_mean_dice, test_mean_ppv = \
+            validate_test_network(epoch,
+                                  phase='test',
+                                  data_loader=test_data_loader,
+                                  args=self.cli_args,
+                                  save_dir=os.path.join(self.results_dir, 'test'))
+        print("Testing DONE!")
 
     #-----------------------------------------------------------------------------------------------
     def init_load_model(self):
