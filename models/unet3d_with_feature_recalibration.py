@@ -180,4 +180,4 @@ if __name__ == "__main__":
     print("Parameters Number of UNet3D + Feature_Recalibration network: {0}".format(num_params))
 
     # Remark here:
-    # Parameters Number of UNet3D + Feature_Recalibration network: 4230352
+    # Parameters Number of UNet3D + Feature_Recalibration network: 423,0352
