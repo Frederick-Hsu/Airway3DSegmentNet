@@ -66,9 +66,9 @@ valset_list = dataset_dict["val"] = []
 testset_list = dataset_dict["test"] = []
 
 # randomly select from the case_names
-trainset_portion = 20 # int(len(case_names) * 0.7)
-valset_portion = 10 # int(len(case_names) * 0.1)
-testset_portion = 15 # int(len(case_names) * 0.2)
+trainset_portion = int(len(case_names) * 0.7)
+valset_portion = int(len(case_names) * 0.1)
+testset_portion = int(len(case_names) * 0.2)
 print(trainset_portion, valset_portion, testset_portion)
 
 case_names_copy = copy.deepcopy(case_names)

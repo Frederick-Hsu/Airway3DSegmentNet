@@ -8,6 +8,8 @@
 *.iml
 *.pdf
 *.pkl
+*.swp
+
 
 .idea/
 .ipynb_checkpoints/*
