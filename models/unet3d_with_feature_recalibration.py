@@ -7,8 +7,10 @@
 #
 #
 
+import torch
+import torch.nn as nn
 
-from .unet3d import UNet3D
+from unet3d import UNet3D
 
 
 # Functions ========================================================================================
@@ -50,7 +52,57 @@ class UNet3DWithFeatureRecalibration(UNet3D):
         self.FR9 = FeatureRecalibrationModule( 16, Depth_max,         Height_max,         Width_max)
 
     def forward(self, input_tensor):
-        pass
+        r'''
+        :param input_tensor: the activated feature of m-th layer,
+                             shape = [batch, channel, depth, height, width]
+        :return: the segmented tensor, attention mapping list
+        '''
+        conv1 = self.conv1(input_tensor)
+        recalibrated_feat1, feat_mapping1 = self.FR1(conv1)
+        pooling1 = self.pooling(recalibrated_feat1)
+
+        conv2 = self.conv2(pooling1)
+        recalibrated_feat2, feat_mapping2 = self.FR2(conv2)
+        pooling2 = self.pooling(recalibrated_feat2)
+
+        conv3 = self.conv3(pooling2)
+        recalibrated_feat3, feat_mapping3 = self.FR3(conv3)
+        pooling3 = self.pooling(recalibrated_feat3)
+
+        conv4 = self.conv4(pooling3)
+        recalibrated_feat4, feat_mapping4 = self.FR4(conv4)
+        pooling4 = self.pooling(recalibrated_feat4)
+
+        conv5 = self.conv5(pooling4)
+        recalibrated_feat5, feat_mapping5 = self.FR5(conv5)
+        upsample5 = self.upsampling(recalibrated_feat5)
+
+        concatenate_upsample5_conv4 = torch.cat([upsample5, conv4], dim=1)
+        conv6 = self.conv6(concatenate_upsample5_conv4)
+        recalibrated_feat6, feat_mapping6 = self.FR6(conv6)
+        upsample6 = self.upsampling(recalibrated_feat6)
+
+        concatenate_upsample6_conv3 = torch.cat([upsample6, conv3], dim=1)
+        conv7 = self.conv7(concatenate_upsample6_conv3)
+        recalibrated_feat7, feat_mapping7 = self.FR7(conv7)
+        upsample7 = self.upsampling(recalibrated_feat7)
+
+        concatenate_upsample7_conv2 = torch.cat([upsample7, conv2], dim=1)
+        conv8 = self.conv8(concatenate_upsample7_conv2)
+        recalibrated_feat8, feat_mapping8 = self.FR8(conv8)
+        upsample8 = self.upsampling(recalibrated_feat8)
+
+        concatenate_upsample8_conv1 = torch.cat([upsample8, conv1], dim=1)
+        conv9 = self.conv9(concatenate_upsample8_conv1)
+        recalibrated_feat9, feat_mapping9 = self.FR9(conv9)
+
+        conv10 = self.conv10(recalibrated_feat9)
+        output_seg_tensor = self.final_sigmoid(conv10)
+
+        return  output_seg_tensor, \
+                [feat_mapping3, feat_mapping4, feat_mapping5, feat_mapping6, feat_mapping7, feat_mapping8, feat_mapping9]
+
+
 #---------------------------------------------------------------------------------------------------
 class FeatureRecalibrationModule(nn.Module):
     def __init__(self, num_channels, Depth, Height, Width, reduction_ratio=2):
