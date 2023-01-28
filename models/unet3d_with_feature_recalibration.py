@@ -170,3 +170,14 @@ class FeatureRecalibrationModule(nn.Module):
 
         return recalibrated_feature, feature_mapping
 
+
+#===================================================================================================
+if __name__ == "__main__":
+    net = UNet3DWithFeatureRecalibration(in_channels=1, out_channels=1)
+    print(net)
+
+    num_params = sum(param.numel() for param in net.parameters())
+    print("Parameters Number of UNet3D + Feature_Recalibration network: {0}".format(num_params))
+
+    # Remark here:
+    # Parameters Number of UNet3D + Feature_Recalibration network: 4230352
