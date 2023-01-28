@@ -77,23 +77,23 @@ class UNet3DWithFeatureRecalibration(UNet3D):
         recalibrated_feat5, feat_mapping5 = self.FR5(conv5)
         upsample5 = self.upsampling(recalibrated_feat5)
 
-        concatenate_upsample5_conv4 = torch.cat([upsample5, conv4], dim=1)
-        conv6 = self.conv6(concatenate_upsample5_conv4)
+        concatenate_upsample5_recalfeat4 = torch.cat([upsample5, recalibrated_feat4], dim=1)
+        conv6 = self.conv6(concatenate_upsample5_recalfeat4)
         recalibrated_feat6, feat_mapping6 = self.FR6(conv6)
         upsample6 = self.upsampling(recalibrated_feat6)
 
-        concatenate_upsample6_conv3 = torch.cat([upsample6, conv3], dim=1)
-        conv7 = self.conv7(concatenate_upsample6_conv3)
+        concatenate_upsample6_recalfeat3 = torch.cat([upsample6, recalibrated_feat3], dim=1)
+        conv7 = self.conv7(concatenate_upsample6_recalfeat3)
         recalibrated_feat7, feat_mapping7 = self.FR7(conv7)
         upsample7 = self.upsampling(recalibrated_feat7)
 
-        concatenate_upsample7_conv2 = torch.cat([upsample7, conv2], dim=1)
-        conv8 = self.conv8(concatenate_upsample7_conv2)
+        concatenate_upsample7_recalfeat2 = torch.cat([upsample7, recalibrated_feat2], dim=1)
+        conv8 = self.conv8(concatenate_upsample7_recalfeat2)
         recalibrated_feat8, feat_mapping8 = self.FR8(conv8)
         upsample8 = self.upsampling(recalibrated_feat8)
 
-        concatenate_upsample8_conv1 = torch.cat([upsample8, conv1], dim=1)
-        conv9 = self.conv9(concatenate_upsample8_conv1)
+        concatenate_upsample8_recalfeat1 = torch.cat([upsample8, recalibrated_feat1], dim=1)
+        conv9 = self.conv9(concatenate_upsample8_recalfeat1)
         recalibrated_feat9, feat_mapping9 = self.FR9(conv9)
 
         conv10 = self.conv10(recalibrated_feat9)
