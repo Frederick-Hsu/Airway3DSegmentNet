@@ -16,13 +16,38 @@ from .unet3d import UNet3D
 
 # Classes ==========================================================================================
 class UNet3DWithFeatureRecalibration(UNet3D):
+    r'''
+    UNet3D model with Feature Recalibration module for pulmonary airway segmentation.
+    '''
     def __init__(self,
                  in_channels=1,
                  out_channels=1,
                  Depth_max=80,
                  Height_max=192,
                  Width_max=304):
+        r'''
+        Parameters
+        ----------
+        in_channels     : the number of input channels
+        out_channels    : the number of output channels
+        Depth_max       : the size of largest feature recalibration cube in depth, default value is 80.
+        Height_max      : the size of largest feature recalibration cube in height, 192 by default.
+        Width_max       : the size of largest feature recalibration cube in width, 304 by default.
+        '''
         super().__init__(in_channels, out_channels)
+        # In the down-sampling path
+        # arguments list:            num_channels  Depth              Height              Width
+        self.FR1 = FeatureRecalibrationModule( 16, Depth_max,         Height_max,         Width_max)
+        self.FR2 = FeatureRecalibrationModule( 32, (Depth_max //  2), (Height_max //  2), (Width_max //  2))
+        self.FR3 = FeatureRecalibrationModule( 64, (Depth_max //  4), (Height_max //  4), (Width_max //  4))
+        self.FR4 = FeatureRecalibrationModule(128, (Depth_max //  8), (Height_max //  8), (Width_max //  8))
+        # In the bottom
+        self.FR5 = FeatureRecalibrationModule(256, (Depth_max // 16), (Height_max // 16), (Width_max // 16))
+        # In the up-sampling path
+        self.FR6 = FeatureRecalibrationModule(128, (Depth_max //  8), (Height_max //  8), (Width_max //  8))
+        self.FR7 = FeatureRecalibrationModule( 64, (Depth_max //  4), (Height_max //  4), (Width_max //  4))
+        self.FR8 = FeatureRecalibrationModule( 32, (Depth_max //  2), (Height_max //  2), (Width_max //  2))
+        self.FR9 = FeatureRecalibrationModule( 16, Depth_max,         Height_max,         Width_max)
 
     def forward(self, input_tensor):
         pass
