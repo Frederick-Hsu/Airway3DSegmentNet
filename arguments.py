@@ -95,23 +95,23 @@ def InitArguments():
                         default=0)
     parser.add_argument("--save-feature",
                         help="save the SAD features or not",
-                        type=bool,
-                        default=False)
+                        type=int,
+                        default=0)
     parser.add_argument("--encoder-path-ad",
                         help="whether to enable the Attention Distillation function or not "
                              "in encoder down-sampling path?",
-                        type=bool,
-                        default=False)
+                        type=int,
+                        default=0)
     parser.add_argument("--decoder-path-ad",
                         help="whether to enable the Attention Distillation function or not "
                              "in the decoder up-sampling path?",
-                        type=bool,
-                        default=False)
+                        type=int,
+                        default=0)
     parser.add_argument("--deep-supervision",
                         metavar="DEEP_SUPERVISION",
                         help="whether to use the deep supervision as auxiliary tasks or not",
-                        type=bool,
-                        default=False)
+                        type=int,
+                        default=0)
     parser.add_argument("--sgd",
                         metavar="SGD_Optimizer",
                         help="whether to use the SGD optimizer",
@@ -119,8 +119,8 @@ def InitArguments():
                         default=0)
     parser.add_argument("--multi-gpu-parallel",
                         help="whether to use multiple GPUs to train in parallel or not?",
-                        type=bool,
-                        default=False)
+                        type=int,
+                        default=0)
 
     parser.add_argument("--train-cube-size",
                         help="specify the size of cropped cube for training",
@@ -147,17 +147,16 @@ def InitArguments():
 
     parser.add_argument("--enable-training",
                         help="Whether to enable the training process?",
-                        type=bool,
-                        default=True)
+                        type=int,
+                        default=0)
     parser.add_argument("--enable-validating",
                         help="Whether to enable the validating process?",
-                        type=bool,
-                        default=False)
+                        type=int,
+                        default=0)
     parser.add_argument("--enable-testing",
                         help="Whether to enable the testing process?",
-                        type=bool,
-                        default=False)
-    
+                        type=int,
+                        default=0)
     return parser
 
 
