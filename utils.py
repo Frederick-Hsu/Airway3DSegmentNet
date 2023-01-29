@@ -64,7 +64,7 @@ def dice_coefficient_np(predict_data, groundtruth_data):
     groundtruth_data_flatten = groundtruth_data.flatten()
     predict_data_flatten = predict_data.flatten()
     intersection = np.sum(predict_data_flatten * groundtruth_data_flatten)
-    return 2.0 * (intersection + smooth) / (np.sum(predict_data_flatten) +
+    return (2.0 * intersection + smooth) / (np.sum(predict_data_flatten) +
                                             np.sum(groundtruth_data_flatten) +
                                             smooth)
 
@@ -86,6 +86,9 @@ def sensitivity_np(predict, groundtruth):
 def accuracy_np(predict, groundtruth):
     predict_flatten = predict.flatten()
     groundtruth_flatten = groundtruth.flatten()
+
+    predict_flatten = predict_flatten > 0.5
+
     intersection = np.sum(predict_flatten == groundtruth_flatten)
     return intersection / (len(groundtruth_flatten) + smooth)
 
