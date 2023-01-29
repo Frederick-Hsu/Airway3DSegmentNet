@@ -275,13 +275,13 @@ class Airway3DSegmentation:
             self.init_model_weights_bias(net, init_type='xavier')
 
         # Try to use the GPU
-        if self.cli_args.multi_gpu_parallel and torch.cuda.is_available():
+        if torch.cuda.is_available():
             net = net.cuda()
             cudnn.benchmark = True
-            if torch.cuda.device_count() > 1:
-                log.warning("Total {0} GPUs were used to compute the neural network in parallel."
-                            .format(torch.cuda.device_count()))
-                net = torch.nn.DataParallel(net)
+        if (self.cli_args.multi_gpu_parallel) and (torch.cuda.device_count() > 1):
+            log.warning("Total {0} GPUs were used to compute the neural network in parallel."
+                        .format(torch.cuda.device_count()))
+            net = torch.nn.DataParallel(net)
 
         self.config = config
         self.airway_seg_model = net
@@ -399,14 +399,14 @@ class Airway3DSegmentation:
 if __name__ == "__main__":
     app = Airway3DSegmentation()
 
-    if app.cli_args.enable_training == True:
+    if app.cli_args.enable_training:
         log.warning("Performing the training process...")
         app.training()
 
-    if app.cli_args.enable_validating == True:
+    if app.cli_args.enable_validating:
         log.warning("Performing the validating process...")
         app.validating()
 
-    if app.cli_args.enable_testing == True:
+    if app.cli_args.enable_testing:
         print("Performing the testing process...")
         app.testing()
