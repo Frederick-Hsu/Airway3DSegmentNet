@@ -150,16 +150,17 @@ class UNet3D(nn.Module):
         conv10 = self.conv10(conv9)
         output_seg_tensor = self.final_sigmoid(conv10)
 
-        mapping3 = torch.sum(torch.pow(conv3, exponent=2), dim=1, keepdim=True)
-        mapping4 = torch.sum(torch.pow(conv4, exponent=2), dim=1, keepdim=True)
-        mapping5 = torch.sum(torch.pow(conv5, exponent=2), dim=1, keepdim=True)
-        mapping6 = torch.sum(torch.pow(conv6, exponent=2), dim=1, keepdim=True)
-        mapping7 = torch.sum(torch.pow(conv7, exponent=2), dim=1, keepdim=True)
-        mapping8 = torch.sum(torch.pow(conv8, exponent=2), dim=1, keepdim=True)
-        mapping9 = torch.sum(torch.pow(conv9, exponent=2), dim=1, keepdim=True)
+        # Calculate the attention distillation mapping
+        ad_mapping3 = torch.sum(torch.pow(conv3, exponent=2), dim=1, keepdim=True)
+        ad_mapping4 = torch.sum(torch.pow(conv4, exponent=2), dim=1, keepdim=True)
+        ad_mapping5 = torch.sum(torch.pow(conv5, exponent=2), dim=1, keepdim=True)
+        ad_mapping6 = torch.sum(torch.pow(conv6, exponent=2), dim=1, keepdim=True)
+        ad_mapping7 = torch.sum(torch.pow(conv7, exponent=2), dim=1, keepdim=True)
+        ad_mapping8 = torch.sum(torch.pow(conv8, exponent=2), dim=1, keepdim=True)
+        ad_mapping9 = torch.sum(torch.pow(conv9, exponent=2), dim=1, keepdim=True)
 
         return output_seg_tensor, \
-               [mapping3, mapping4, mapping5, mapping6, mapping7, mapping8, mapping9]
+               [ad_mapping3, ad_mapping4, ad_mapping5, ad_mapping6, ad_mapping7, ad_mapping8, ad_mapping9]
 
 
 #===================================================================================================
@@ -168,4 +169,7 @@ if __name__ == "__main__":
     print(net)
 
     num_parameters = sum(parameter.numel() for parameter in net.parameters())
-    print("Number of network parameters: {0}".format(num_parameters))
+    print("Parameters Number of UNet3D network: {0}".format(num_parameters))
+
+    # Remark here
+    # Parameters Number of UNet3D network: 4117969
