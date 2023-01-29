@@ -51,6 +51,7 @@ def train_network(epoch, model, data_loader, optimizer, args):
     assert learning_rate is not None
     for param_group in optimizer.param_groups:
         param_group['lr'] = learning_rate
+        log.warning("In epoch #{0}, optimzer.lr = {1:.5f}".format(epoch, param_group['lr']))
     optimizer.zero_grad()
 
     dice_list = []  # dice coefficient values
@@ -101,7 +102,7 @@ def train_network(epoch, model, data_loader, optimizer, args):
         # loss += (BCEL_value := binary_cross_entropy_loss(predict, label_cube))
         # log.warning("binary_cross_entropy_loss_value = {0:.5f}".format(BCEL_value.item()))
 
-        if args.encoder_path_ad == True:
+        if args.encoder_path_ad:
             # If the attention distillation was enabled in the encoder path, namely down-sampling path
             ad_gamma = [0.1, 0.1, 0.1]
             for index in range(len(ad_gamma) - 1):
@@ -110,7 +111,7 @@ def train_network(epoch, model, data_loader, optimizer, args):
                                                                                 encoder_flag=True)
                 loss += encoder_ad_loss
                 log.warning("encoder_ad_loss_value = {0:.5f}".format(encoder_ad_loss.item()))
-        if args.decoder_path_ad == True:
+        if args.decoder_path_ad:
             # If the attention distillation was enabled in the decoder path, namely up-sampling path
             ad_gamma = [0.1, 0.1, 0.1]
             for index in range(3, 6):
@@ -131,9 +132,9 @@ def train_network(epoch, model, data_loader, optimizer, args):
         groundtruth_data = label_cube.cpu().data.numpy()
         groundtruth_segment_data = (groundtruth_data > binary_threshold)
 
-        for num in range(len(batch_len)):
+        for num in range(batch_len):
             dice = dice_coefficient_np(predict_data[num, 0], groundtruth_segment_data[num, 0])
-            predict_segment = (predict_data > binary_threshold)
+            predict_segment = (predict_data[num, 0] > binary_threshold)
             dice_hard = dice_coefficient_np(predict_segment, groundtruth_segment_data[num, 0])
             ppv = positive_predictive_value_np(predict_segment, groundtruth_segment_data[num, 0])
             sensitivity = sensitivity_np(predict_segment, groundtruth_segment_data[num, 0])
