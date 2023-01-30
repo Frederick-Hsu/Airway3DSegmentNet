@@ -373,8 +373,11 @@ class ATM22AirwayDataset(Dataset):
                                              is_swap = self.augmentation_type['swap'],
                                              is_smooth = self.augmentation_type['smooth'],
                                              is_jitter = self.augmentation_type['jitter'])
-        image_cube = image_cube[np.newaxis, ...]
-        label_cube = label_cube[np.newaxis, ...]
+            image_cube = image_cube[np.newaxis, ...]
+            label_cube = label_cube[np.newaxis, ...]
+        else:
+            image_cube = curr_image_cube[np.newaxis, ...]
+            label_cube = curr_label_cube[np.newaxis, ...]
 
         log.warning("\nATM22AirwayDataset.__getitem__[{0}]".format(index))
         log.warning("Current case-name = {0}, split-ID = {1}".format(currNameID, currSplitID))
