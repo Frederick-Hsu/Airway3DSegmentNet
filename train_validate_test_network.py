@@ -154,12 +154,12 @@ def train_network(epoch, model, data_loader, optimizer, args):
     mean_accuracy = np.mean(np.array(accuracy_list))
     mean_loss = np.mean(np.array(loss_list))
 
-    log.warning("dice_list = {0}".format(dice_list))
-    log.warning("dice_hard_list = {0}".format(dice_hard_list))
-    log.warning("ppv_list = {0}".format(ppv_list))
-    log.warning("sensitivity_list = {0}".format(sensitivity_list))
-    log.warning("accuracy_list = {0}".format(accuracy_list))
-    log.warning("loss_list = {0}".format(loss_list))
+    # log.warning("dice_list = {0}".format(dice_list))
+    # log.warning("dice_hard_list = {0}".format(dice_hard_list))
+    # log.warning("ppv_list = {0}".format(ppv_list))
+    # log.warning("sensitivity_list = {0}".format(sensitivity_list))
+    # log.warning("accuracy_list = {0}".format(accuracy_list))
+    # log.warning("loss_list = {0}".format(loss_list))
 
     print("Training phase, epoch = #{0}, loss = {1:.4f}, accuracy = {2:.4f}, sensitivity = {3:.4f}, "
           "dice = {4:.4f}, dice-hard = {5:.4f}, positive predictive value = {6:.4f}, "
@@ -197,10 +197,14 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
     with torch.no_grad():
         log.warning("{1} progress......, in epoch #{0}"
                     .format(epoch, ("Validating" if phase == 'val' else 'Testing')))
+        # for index, (image_cube, label_cube, origin, spacing, case_name, splitID, num_DHW, shape) in enumerate(data_loader):
         for index, (image_cube, label_cube, origin, spacing, case_name, splitID, num_DHW, shape) in enumerate(tqdm(data_loader)):
             batch_len = image_cube.size(0)
             log.warning("Case names = {0}, SplitIDs = {1}, image_cube.shape = {2}, label_cube.shape = {3}, batch_size = {4}"
                         .format(case_name, splitID, image_cube.shape, label_cube.shape, batch_len))
+
+            case_name = case_name[0]    # Fetch out the case_name list
+            splitID = splitID[0]        # Fetch out the splitID list, same as case_name
 
             image_cube = image_cube.cuda()
             label_cube = label_cube.cuda()
@@ -232,7 +236,7 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
             loss += (focal_loss_value := focal_loss(predict, label_cube))
             log.warning("focal_loss_value = {0:.5f}".format(focal_loss_value.item()))
 
-            if args.encoder_path_ad == True:
+            if args.encoder_path_ad:
                 ad_gamma = [0.1, 0.1, 0.1]
                 for index in range(len(ad_gamma) - 1):  # attentions 0, 1, 2
                     encoder_ad_loss = ad_gamma[index] * attention_distillation_loss(attentions[index],
@@ -240,7 +244,7 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
                                                                                     encoder_flag=True)
                     loss += encoder_ad_loss
                     log.warning("encoder_ad_loss_value = {0:.5f}".format(encoder_ad_loss.item()))
-            if args.decoder_path_ad == True:
+            if args.decoder_path_ad:
                 ad_gamma = [0.1, 0.1, 0.1]
                 for index in range(3, 6):   # attentions 3, 4, 5, 6
                     decoder_ad_loss = ad_gamma[index - 3] * attention_distillation_loss(attentions[index],
@@ -290,11 +294,11 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
                 if curr_name not in feat9_total.keys():
                     feat9_total[curr_name] = []
 
-                # curr_input_info = [curr_img_data,     curr_splitID, curr_num_DHW, curr_shape, curr_origin, curr_spacing]
+                curr_input_info = [curr_img_data,     curr_splitID, curr_num_DHW, curr_shape, curr_origin, curr_spacing]
                 curr_gt_info    = [curr_gt_data,      curr_splitID, curr_num_DHW, curr_shape, curr_origin, curr_spacing]
                 curr_pred_info  = [curr_predict_data, curr_splitID, curr_num_DHW, curr_shape, curr_origin, curr_spacing]
 
-                # input_total[curr_name].append(curr_input_info)
+                input_total[curr_name].append(curr_input_info)
                 groundtruth_total[curr_name].append(curr_gt_info)
                 pred_total[curr_name].append(curr_pred_info)
 
@@ -316,10 +320,7 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
 
     # Combine all these cases together
     stride = args.val_stride
-    if args.val_cube_size is not None:
-        cube_size = args.val_cube_size
-    else:
-        cube_szie = args.train_cube_size
+    cube_size = args.val_cube_size
 
     for curr_name in input_total.keys():
         curr_input = input_total[curr_name]
@@ -330,9 +331,9 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
         # input_combine, input_origin, input_spacing = combine_total(curr_input, stride, cube_szie)
 
         # Combine the label cubes
-        label_combine, curr_origin, curr_spacing = combine_total(curr_groundtruth, stride, cube_szie)
+        label_combine, curr_origin, curr_spacing = combine_total(curr_groundtruth, stride, cube_size)
         # Combine the predict cubes
-        pred_combine, pred_origin, pred_spacing = combine_total_avg(curr_pred, stride, cube_szie)
+        pred_combine, pred_origin, pred_spacing = combine_total_avg(curr_pred, stride, cube_size)
         pred_combine_binarythreshold = (pred_combine > binary_threshold)
 
         curr_label_path = os.path.join(save_dir, "{0}-groundtruth.nii.gz".format(curr_name))
@@ -347,10 +348,10 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
             curr_feat8 = feat8_total[curr_name]
             curr_feat9 = feat9_total[curr_name]
 
-            feat6, feat_origin, feat_spacing = combine_total_avg(curr_feat6, stride, cube_szie)
-            feat7, _, _ = combine_total_avg(curr_feat7, stride, cube_szie)
-            feat8, _, _ = combine_total_avg(curr_feat8, stride, cube_szie)
-            feat9, _, _ = combine_total_avg(curr_feat9, stride, cube_szie)
+            feat6, feat_origin, feat_spacing = combine_total_avg(curr_feat6, stride, cube_size)
+            feat7, _, _ = combine_total_avg(curr_feat7, stride, cube_size)
+            feat8, _, _ = combine_total_avg(curr_feat8, stride, cube_size)
+            feat9, _, _ = combine_total_avg(curr_feat9, stride, cube_size)
             feat6 = normal_min_max(feat6) * 255
             feat7 = normal_min_max(feat7) * 255
             feat8 = normal_min_max(feat8) * 255
@@ -366,11 +367,17 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
             save_CT_scan_3D_image(feat9.astype(dtype='uint8'), curr_origin, curr_spacing, curr_feat9_path)
 
         # -------------------------------------------------------------------------------------------
+        log.warning("{0} case:".format(case_name))
         curr_dice_hard = dice_coefficient_np(pred_combine_binarythreshold, label_combine)
+        log.warning("\tdice_hard = {0:.5f}".format(curr_dice_hard))
         curr_dice = dice_coefficient_np(pred_combine, label_combine)
+        log.warning("\tdice = {0:.5f}".format(curr_dice))
         curr_ppv = positive_predictive_value_np(pred_combine_binarythreshold, label_combine)
+        log.warning("\tpositive_probability = {0:.5f}".format(curr_ppv))
         curr_sensitivity = sensitivity_np(pred_combine_binarythreshold, label_combine)
+        log.warning("\tsensitivity = {0:.5f}".format(curr_sensitivity))
         curr_accuracy = accuracy_np(pred_combine_binarythreshold, label_combine)
+        log.warning("\taccuracy = {0:.5f}".format(curr_accuracy))
 
         dice_list.append(curr_dice)
         dice_hard_list.append(curr_dice_hard)
