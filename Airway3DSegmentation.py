@@ -232,6 +232,10 @@ class Airway3DSegmentation:
     def validating(self):
         val_data_loader = self.prepare_validate_dataloader()
 
+        validate_dir = os.path.join(self.results_dir, 'validate')
+        if not os.path.exists(validate_dir):
+            os.mkdir(validate_dir)
+
         epoch = 1   # Only need to carry out 1 epoch of "validate_network()"
         val_mean_loss, val_mean_accuracy, val_mean_sensitivity, val_mean_dice, val_mean_ppv = \
             validate_test_network(epoch,
@@ -239,20 +243,25 @@ class Airway3DSegmentation:
                                   model=self.airway_seg_model,
                                   data_loader=val_data_loader,
                                   args=self.cli_args,
-                                  save_dir=os.path.join(self.results_dir, 'validate'))
+                                  save_dir=validate_dir)
         print("Validating DONE!")
 
     #-----------------------------------------------------------------------------------------------
     def testing(self):
         test_data_loader = self.prepare_test_dataloader()
 
+        test_dir = os.path.join(self.results_dir, 'test')
+        if not os.path.exists(test_dir):
+            os.mkdir(test_dir)
+
         epoch = 1
         test_mean_loss, test_mean_accuracy, test_mean_sensitivity, test_mean_dice, test_mean_ppv = \
             validate_test_network(epoch,
                                   phase='test',
+                                  model=self.airway_seg_model,
                                   data_loader=test_data_loader,
                                   args=self.cli_args,
-                                  save_dir=os.path.join(self.results_dir, 'test'))
+                                  save_dir=test_dir)
         print("Testing DONE!")
 
     #-----------------------------------------------------------------------------------------------
@@ -400,11 +409,11 @@ if __name__ == "__main__":
     app = Airway3DSegmentation()
 
     if app.cli_args.enable_training:
-        log.warning("Performing the training process...")
+        print("Performing the training process...")
         app.training()
 
     if app.cli_args.enable_validating:
-        log.warning("Performing the validating process...")
+        print("Performing the validating process...")
         app.validating()
 
     if app.cli_args.enable_testing:
