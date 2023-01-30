@@ -31,13 +31,13 @@ python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 -
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=0 \
 --resume="./results/baseline/model_latest.ckpt" --save-feature=1 \
---enable-training=0 --enable-validating=1 --enable-testing=1
+--enable-training=0 --enable-validating=1 --enable-testing=0
 
 
 # Testing
 python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 --save-dir=baseline \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
---start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=True \
---encoder-path-ad=False --decoder-path-ad=False \
---resume="./results/baseline/model_latest.ckpt" --save-feature=True \
+--start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
+--encoder-path-ad=0 --decoder-path-ad=0 \
+--resume="./results/baseline/model_latest.ckpt" --save-feature=1 \
 --enable-training=0 --enable-validating=0 --enable-testing=1
