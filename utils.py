@@ -108,7 +108,7 @@ def combine_total(output, stride, cubesize):
     curr_spacing = gt_info[5]
     curr_num_DHW = gt_info[2]
 
-    num_Depth, num_Height, num_Width = curr_num_DHW[0], gt_info[1], gt_info[2]
+    num_Depth, num_Height, num_Width = curr_num_DHW[0], curr_num_DHW[1], curr_num_DHW[2]
     [depth, height, width] = curr_shape
 
     if type(cubesize) is not list:
@@ -121,7 +121,7 @@ def combine_total(output, stride, cubesize):
         curr_splitID = int(curr_gt_info[1])
         splits[curr_splitID] = curr_gt_data
 
-    Cuboid = -100000 * np.ones((depth, height, width), dtype=np.float32)
+    Cuboid = -100000 * np.ones((depth, height, width), np.float32)
     cnt = 0
     for index_depth in range(num_Depth + 1):
         for index_height in range(num_Height + 1):
