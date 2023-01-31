@@ -42,7 +42,7 @@ def get_learning_rate(epoch, args):
     return lr
 
 
-def train_network(epoch, model, data_loader, optimizer, args):
+def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer, total_count):
     model.train()
 
     start_time = time.time()
@@ -72,6 +72,7 @@ def train_network(epoch, model, data_loader, optimizer, args):
         image_cube = image_cube.cuda()
         label_cube = label_cube.cuda()  # namely the ground truth in each cropped label cube
         predicts, attention_mapping_list = model(image_cube)
+        # tensorboard_writer.add_graph(model, image_cube)     # Save the model's graph into the TensorBoard
 
         log.warning("predicts.shape = {0}".format([predict.shape for predict in predicts]))
         log.warning("attention_mappings.shape = {0}"
@@ -110,7 +111,7 @@ def train_network(epoch, model, data_loader, optimizer, args):
                                                                                 attention_mapping_list[index+1],
                                                                                 encoder_flag=True)
                 loss += encoder_ad_loss
-                log.warning("encoder_ad_loss_value = {0:.5f}".format(encoder_ad_loss.item()))
+                log.warning("encoder_ad_loss_value = {0:.10f}".format(encoder_ad_loss.item()))
         if args.decoder_path_ad:
             # If the attention distillation was enabled in the decoder path, namely up-sampling path
             ad_gamma = [0.1, 0.1, 0.1]
@@ -120,7 +121,7 @@ def train_network(epoch, model, data_loader, optimizer, args):
                                                                                   attention_mapping_list[index+1],
                                                                                   encoder_flag=False)
                 loss += decoder_ad_loss
-                log.warning("decoder_ad_loss_value = {0:.5f}".format(decoder_ad_loss.item()))
+                log.warning("decoder_ad_loss_value = {0:.10f}".format(decoder_ad_loss.item()))
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -145,6 +146,8 @@ def train_network(epoch, model, data_loader, optimizer, args):
             sensitivity_list.append(sensitivity)
             accuracy_list.append(accuracy)
             ppv_list.append(ppv)
+
+            total_count += 1
 
     end_time = time.time()
     mean_dice = np.mean(np.array(dice_list))
@@ -172,7 +175,7 @@ def train_network(epoch, model, data_loader, optimizer, args):
 
 
 #---------------------------------------------------------------------------------------------------
-def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
+def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tensorboard_writer, total_count):
     model.eval()
 
     start_time = time.time()
@@ -318,6 +321,8 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
                     feat8_total[curr_name].append(curr_feat8_info)
                     feat9_total[curr_name].append(curr_feat9_info)
 
+                total_count += 1
+
     # Combine all these cases together
     stride = args.val_stride
     cube_size = args.val_cube_size
@@ -328,7 +333,7 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
         curr_pred = pred_total[curr_name]
 
         # The raw CT 3D image does not need to combine
-        # input_combine, input_origin, input_spacing = combine_total(curr_input, stride, cube_szie)
+        input_combine, input_origin, input_spacing = combine_total(curr_input, stride, cube_size)
 
         # Combine the label cubes
         label_combine, curr_origin, curr_spacing = combine_total(curr_groundtruth, stride, cube_size)
@@ -340,6 +345,29 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
         curr_pred_path  = os.path.join(save_dir, "{0}-predict.nii.gz".format(curr_name))
         save_CT_scan_3D_image(label_combine.astype(dtype='uint8'), curr_origin, curr_spacing, curr_label_path)
         save_CT_scan_3D_image(pred_combine_binarythreshold.astype(dtype='uint8'), curr_origin, curr_spacing, curr_pred_path)
+
+        label_cuboid_np = label_combine.astype(dtype='uint8')
+        predict_cuboid_np = pred_combine_binarythreshold.astype(dtype='uint8')
+        groundtruth_airway_top_view = np.sum(label_cuboid_np, axis=1)
+        predicted_airway_top_view = np.sum(predict_cuboid_np, axis=1)
+        tensorboard_writer.add_image(tag="{0}: groundtruth airway".format(curr_name),
+                                     img_tensor=groundtruth_airway_top_view,
+                                     global_step=total_count,
+                                     dataformats='HW')
+        tensorboard_writer.add_image(tag="{0}: predicted airway".format(curr_name),
+                                     img_tensor=predicted_airway_top_view,
+                                     global_step=total_count,
+                                     dataformats='HW')
+
+        raw_image_cuboid = input_combine
+        depth, height, width = raw_image_cuboid.shape
+        middle_slice = raw_image_cuboid[depth // 2, :, :]
+        tensorboard_writer.add_image(tag="{0}: raw 3D image, slices[{1}]".format(curr_name, depth//2),
+                                     img_tensor=middle_slice,
+                                     global_step=total_count,
+                                     dataformats='HW')
+        tensorboard_writer.flush()
+
 
         #-------------------------------------------------------------------------------------------
         if args.save_feature:
@@ -365,6 +393,33 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir):
             save_CT_scan_3D_image(feat7.astype(dtype='uint8'), curr_origin, curr_spacing, curr_feat7_path)
             save_CT_scan_3D_image(feat8.astype(dtype='uint8'), curr_origin, curr_spacing, curr_feat8_path)
             save_CT_scan_3D_image(feat9.astype(dtype='uint8'), curr_origin, curr_spacing, curr_feat9_path)
+
+            feat6_cuboid_np = feat6.astype(dtype='uint8')
+            feat7_cuboid_np = feat7.astype(dtype='uint8')
+            feat8_cuboid_np = feat8.astype(dtype='uint8')
+            feat9_cuboid_np = feat9.astype(dtype='uint8')
+            feat6_airway_top_view = np.sum(feat6_cuboid_np, axis=1)
+            feat7_airway_top_view = np.sum(feat7_cuboid_np, axis=1)
+            feat8_airway_top_view = np.sum(feat8_cuboid_np, axis=1)
+            feat9_airway_top_view = np.sum(feat9_cuboid_np, axis=1)
+
+            tensorboard_writer.add_image(tag="{0}: attention distillation mapping6".format(curr_name),
+                                         img_tensor=feat6_airway_top_view,
+                                         global_step=total_count,
+                                         dataformats='HWC')
+            tensorboard_writer.add_image(tag="{0}: attention distillation mapping7".format(curr_name),
+                                         img_tensor=feat7_airway_top_view,
+                                         global_step=total_count,
+                                         dataformats='HWC')
+            tensorboard_writer.add_image(tag="{0}: attention distillation mapping8".format(curr_name),
+                                         img_tensor=feat8_airway_top_view,
+                                         global_step=total_count,
+                                         dataformats='HWC')
+            tensorboard_writer.add_image(tag="{0}: attention distillation mapping9".format(curr_name),
+                                         img_tensor=feat9_airway_top_view,
+                                         global_step=total_count,
+                                         dataformats='HWC')
+            tensorboard_writer.flush()
 
         # -------------------------------------------------------------------------------------------
         log.warning("{0} case:".format(case_name))
