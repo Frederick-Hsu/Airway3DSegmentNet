@@ -1,11 +1,11 @@
 #!/bin/bash
 
-#SBATCH --job-name=airway3dseg_baseline
+#SBATCH --job-name=UNet3D_Airway3DSegment
 #SBATCH --partition=dgx2
 #SBATCH -n 8
 #SBATCH --gres=gpu:2
-#SBATCH --output=airway3dseg_baseline_%j.out
-#SBATCH --error=airway3dseg_baseline_%j.err
+#SBATCH --output=Airway3DSegment_Baseline_%j.out
+#SBATCH --error=Airway3DSegment_Baseline_%j.err
 #SBATCH --mail-type=end
 #SBATCH --mail-user=frederique.hsu@outlook.com
 
@@ -18,7 +18,7 @@ which python
 python --version
 
 # Training the baseline UNet3D model
-python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 --save-dir=baseline \
+python Airway3DSegmentation.py --model=baseline --batch-size=4 --num-workers=3 --save-dir=baseline \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=0 \
@@ -26,7 +26,7 @@ python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 -
 
 
 # Validating
-python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 --save-dir=baseline \
+python Airway3DSegmentation.py --model=baseline --batch-size=4 --num-workers=3 --save-dir=baseline \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=0 \
@@ -35,7 +35,7 @@ python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 -
 
 
 # Testing
-python Airway3DSegmentation.py --model=baseline --batch-size=1 --num-workers=0 --save-dir=baseline \
+python Airway3DSegmentation.py --model=baseline --batch-size=4 --num-workers=3 --save-dir=baseline \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=0 \
