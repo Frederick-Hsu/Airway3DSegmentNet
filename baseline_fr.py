@@ -20,5 +20,8 @@ def get_model(args=None):
                                          Width_max=args.train_cube_size[2])
     print(net)
     num_parameters = sum(param.numel() for param in net.parameters())
-    print("Number of network parameters: {0}".format(num_parameters))
+    print("Parameters Number of UNet3D + Feature_Recalibration network: {0}".format(num_parameters))
     return config, net
+
+
+#===================================================================================================
