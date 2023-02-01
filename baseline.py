@@ -27,7 +27,7 @@ def get_model(args=None):
     net = UNet3D(in_channels=1, out_channels=1)
     print(net)
     num_params = sum(param.numel() for param in net.parameters())
-    print("Number of network parameters: {0}".format(num_params))
+    print("Parameters Number of UNet3D network: {0}".format(num_params))
     return config, net
 
 
