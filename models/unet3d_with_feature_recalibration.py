@@ -10,7 +10,7 @@
 import torch
 import torch.nn as nn
 
-from unet3d import UNet3D
+from .unet3d import UNet3D
 
 
 # Functions ========================================================================================

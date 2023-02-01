@@ -11,7 +11,7 @@
 import torch
 import torch.nn as nn
 
-from unet3d_with_feature_recalibration import UNet3DWithFeatureRecalibration
+from .unet3d_with_feature_recalibration import UNet3DWithFeatureRecalibration
 
 
 # Classes ==========================================================================================
