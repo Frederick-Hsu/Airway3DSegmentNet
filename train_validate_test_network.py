@@ -396,11 +396,11 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
         predicted_airway_top_view = np.sum(predict_cuboid_np, axis=1)
 
         total_count += 1
-        tensorboard_writer.add_image(tag="{1}: groundtruth airway in epoch #{0}".format(epoch, curr_name),
+        tensorboard_writer.add_image(tag="{0}: groundtruth airway in epoch #{1}".format(curr_name, epoch),
                                      img_tensor=groundtruth_airway_top_view,
                                      global_step=total_count,
                                      dataformats='HW')
-        tensorboard_writer.add_image(tag="{1}: predicted airway in epoch #{0}".format(epoch, curr_name),
+        tensorboard_writer.add_image(tag="{0}: predicted airway in epoch #{1}".format(curr_name, epoch),
                                      img_tensor=predicted_airway_top_view,
                                      global_step=total_count,
                                      dataformats='HW')
@@ -408,8 +408,8 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
         raw_image_cuboid = input_combine
         depth, height, width = raw_image_cuboid.shape
         middle_slice = raw_image_cuboid[depth // 2, :, :]
-        tensorboard_writer.add_image(tag="{0}: raw 3D image, slices[{1}] in epoch #{0}"
-                                         .format(epoch, curr_name, depth//2),
+        tensorboard_writer.add_image(tag="{0}: raw 3D image, slices[{1}] in epoch #{2}"
+                                         .format(curr_name, depth//2, epoch),
                                      img_tensor=middle_slice,
                                      global_step=total_count,
                                      dataformats='HW')
