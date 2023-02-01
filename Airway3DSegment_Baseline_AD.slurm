@@ -1,11 +1,11 @@
 #!/bin/bash
 
-#SBATCH --job-name=airway3dseg_baseline_ad
+#SBATCH --job-name=AD_UNet3D_Airway3DSegment
 #SBATCH --partition=dgx2
 #SBATCH -n 8
 #SBATCH --gres=gpu:2
-#SBATCH --output=airway3dseg_baseline_ad_%j.out
-#SBATCH --error=airway3dseg_baseline_ad_%j.err
+#SBATCH --output=Airway3DSegment_Baseline_AD_%j.out
+#SBATCH --error=Airway3DSegment_Baseline_AD_%j.err
 #SBATCH --mail-type=end
 #SBATCH --mail-user=frederique.hsu@outlook.com
 
