@@ -13,6 +13,6 @@ import logging
 # Objects ==========================================================================================
 log = logging.Logger(__name__)
 # changing from logging.DEBUG to logging.ERROR, it can turn off all log.info(), log.warning() statements
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.ERROR)
 log.warning("Segment the pulmonary 3D airway model")
 
