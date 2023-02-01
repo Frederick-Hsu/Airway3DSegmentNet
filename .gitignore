@@ -10,7 +10,8 @@
 *.pkl
 *.swp
 *.ipynb
-
+*.err
+*.out
 
 .idea/
 .ipynb_checkpoints/*
