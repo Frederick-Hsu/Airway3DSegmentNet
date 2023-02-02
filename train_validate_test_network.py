@@ -470,7 +470,7 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
             tensorboard_writer.flush()
 
         # -------------------------------------------------------------------------------------------
-        log.warning("{0} case:".format(case_name))
+        log.warning("{0} case:".format(curr_name))
         curr_dice_hard = dice_coefficient_np(pred_combine_binarythreshold, label_combine)
         log.warning("\tdice_hard = {0:.5f}".format(curr_dice_hard))
         curr_dice = dice_coefficient_np(pred_combine, label_combine)
