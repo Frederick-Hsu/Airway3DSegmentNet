@@ -109,7 +109,7 @@ class Airway3DSegmentation:
             self.tensorboard_writer.add_scalar(tag='train_mean_loss', scalar_value=train_mean_loss, global_step=epoch)
             self.tensorboard_writer.add_scalar(tag='train_mean_accuracy', scalar_value=train_mean_accuracy, global_step=epoch)
             self.tensorboard_writer.add_scalar(tag='train_mean_sensitivity', scalar_value=train_mean_sensitivity, global_step=epoch)
-            self.tensorboard_writer.add_scalar(tag='train_mean_dice', scalar_value=train_mean_dice, global_step=epoch)
+            self.tensorboard_writer.add_scalar(tag='train_mean_dice_similarity_coefficient', scalar_value=train_mean_dice, global_step=epoch)
             self.tensorboard_writer.add_scalar(tag='train_mean_positive_probability', scalar_value=train_mean_ppv, global_step=epoch)
             self.tensorboard_writer.flush()
 
@@ -152,7 +152,7 @@ class Airway3DSegmentation:
                 self.tensorboard_writer.add_scalar(tag='val_mean_loss', scalar_value=val_mean_loss, global_step=epoch)
                 self.tensorboard_writer.add_scalar(tag='val_mean_accuracy', scalar_value=val_mean_accuracy, global_step=epoch)
                 self.tensorboard_writer.add_scalar(tag='val_mean_sensitivity', scalar_value=val_mean_sensitivity, global_step=epoch)
-                self.tensorboard_writer.add_scalar(tag='val_mean_dice', scalar_value=val_mean_dice, global_step=epoch)
+                self.tensorboard_writer.add_scalar(tag='val_mean_dice_similarity_coefficient', scalar_value=val_mean_dice, global_step=epoch)
                 self.tensorboard_writer.add_scalar(tag='val_mean_positive_probability', scalar_value=val_mean_ppv, global_step=epoch)
                 self.tensorboard_writer.flush()
 
@@ -184,7 +184,7 @@ class Airway3DSegmentation:
                 self.tensorboard_writer.add_scalar(tag='test_mean_loss', scalar_value=test_mean_loss, global_step=epoch)
                 self.tensorboard_writer.add_scalar(tag='test_mean_accuracy', scalar_value=test_mean_accuracy, global_step=epoch)
                 self.tensorboard_writer.add_scalar(tag='test_mean_sensitivity', scalar_value=test_mean_sensitivity, global_step=epoch)
-                self.tensorboard_writer.add_scalar(tag='test_mean_dice', scalar_value=test_mean_dice, global_step=epoch)
+                self.tensorboard_writer.add_scalar(tag='test_mean_dice_similarity_coefficient', scalar_value=test_mean_dice, global_step=epoch)
                 self.tensorboard_writer.add_scalar(tag='test_mean_positive_probability', scalar_value=test_mean_ppv, global_step=epoch)
                 self.tensorboard_writer.flush()
 
