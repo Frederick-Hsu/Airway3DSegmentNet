@@ -26,6 +26,7 @@ from various_loss_functions import dice_loss, \
 
 from utils import dice_coefficient_np, positive_predictive_value_np, sensitivity_np, accuracy_np
 from utils import combine_total, combine_total_avg, save_CT_scan_3D_image, normal_min_max
+from Visualization.visualize import visualize_segment_effect
 
 #===================================================================================================
 binary_threshold = 0.5
@@ -61,6 +62,14 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
     dice_hard_list = []
     loss_list = []
 
+    pure_dice_loss_list = []
+    deepsupervision6_dice_loss_list = []
+    deepsupervision7_dice_loss_list = []
+    deepsupervision8_dice_loss_list = []
+    focal_loss_list = []
+    encoder_ad_loss_list = []
+    decoder_ad_loss_list = []
+
     log.warning("Training progress......, in epoch #{0}".format(epoch))
     # for index, (image_cube, label_cube, origin, spacing, case_name, splitID, num_DHW, shape) in enumerate(data_loader):
     for index, (image_cube, label_cube, origin, spacing, case_name, splitID, num_DHW, shape) in enumerate(tqdm(data_loader)):
@@ -84,45 +93,28 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
             deepsupervision6, deepsupervision7, deepsupervision8 = predicts[1], predicts[2], predicts[3]
 
             loss  = dice_loss(predict, label_cube)
-            log.warning("dice_loss_value = {0:.5f}".format(loss.item()))
-            dice_loss6 = dice_loss(deepsupervision6, label_cube)
-            log.warning("dice_loss6_value = {0:.5f}".format(dice_loss6.item()))
-            dice_loss7 = dice_loss(deepsupervision7, label_cube)
-            log.warning("dice_loss7_value = {0:.5f}".format(dice_loss7.item()))
-            dice_loss8 = dice_loss(deepsupervision8, label_cube)
-            log.warning("dice_loss8_value = {0:.5f}".format(dice_loss8.item()))
+            pure_dice_loss_list.append(loss.item())
 
-            total_count += 1
-            tensorboard_writer.add_scalar(tag="Dice-loss",
-                                          scalar_value=loss.item(),
-                                          global_step=total_count)
-            tensorboard_writer.add_scalar(tag="Deep_Supervision6 dice-loss",
-                                          scalar_value=dice_loss6.item(),
-                                          global_step=total_count)
-            tensorboard_writer.add_scalar(tag="Deep_Supervision7 dice-loss",
-                                          scalar_value=dice_loss7.item(),
-                                          global_step=total_count)
-            tensorboard_writer.add_scalar(tag="Deep_Supervision8 dice-loss",
-                                          scalar_value=dice_loss8.item(),
-                                          global_step=total_count)
+            dice_loss6 = dice_loss(deepsupervision6, label_cube)
+            deepsupervision6_dice_loss_list.append(dice_loss6.item())
+
+            dice_loss7 = dice_loss(deepsupervision7, label_cube)
+            deepsupervision7_dice_loss_list.append(dice_loss7.item())
+
+            dice_loss8 = dice_loss(deepsupervision8, label_cube)
+            deepsupervision8_dice_loss_list.append(dice_loss8.item())
 
             loss += dice_loss6 + dice_loss7 + dice_loss8
         else:
             predict = predicts
             loss = dice_loss(predict, label_cube)
-            log.warning("dice_loss_value = {0:.5f}".format(loss.item()))
+            pure_dice_loss_list.append(loss.item())
 
-            total_count += 1
-            tensorboard_writer.add_scalar(tag="Dice-loss",
-                                          scalar_value=loss.item(),
-                                          global_step=total_count)
+        focal_loss_value = focal_loss(predict, label_cube)
+        focal_loss_list.append(focal_loss_value.item())
 
-        loss += (focal_loss_value := focal_loss(predict, label_cube))
-        log.warning("focal_loss_value = {0:.5f}".format(focal_loss_value.item()))
+        loss += focal_loss_value
 
-        tensorboard_writer.add_scalar(tag="Focal loss",
-                                      scalar_value=focal_loss_value.item(),
-                                      global_step=total_count)
         # loss += (BCEL_value := binary_cross_entropy_loss(predict, label_cube))
         # log.warning("binary_cross_entropy_loss_value = {0:.5f}".format(BCEL_value.item()))
 
@@ -133,13 +125,8 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
                 encoder_ad_loss = ad_gamma[index] * attention_distillation_loss(attention_mapping_list[index],
                                                                                 attention_mapping_list[index+1],
                                                                                 encoder_flag=True)
+                encoder_ad_loss_list.append(encoder_ad_loss.item())
                 loss += encoder_ad_loss
-                log.warning("encoder_ad_loss_value = {0:.10f}".format(encoder_ad_loss.item()))
-
-                total_count += 1
-                tensorboard_writer.add_scalar(tag="Attention Distillation loss in encoder path",
-                                              scalar_value=encoder_ad_loss.item(),
-                                              global_step=total_count)
         if args.decoder_path_ad:
             # If the attention distillation was enabled in the decoder path, namely up-sampling path
             ad_gamma = [0.1, 0.1, 0.1]
@@ -148,15 +135,9 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
                 decoder_ad_loss = ad_gamma[index-3] * attention_distillation_loss(attention_mapping_list[index],
                                                                                   attention_mapping_list[index+1],
                                                                                   encoder_flag=False)
+                decoder_ad_loss_list.append(decoder_ad_loss.item())
                 loss += decoder_ad_loss
-                log.warning("decoder_ad_loss_value = {0:.10f}".format(decoder_ad_loss.item()))
 
-                total_count += 1
-                tensorboard_writer.add_scalar(tag="Attention Distillation loss in decoder path",
-                                              scalar_value=decoder_ad_loss.item(),
-                                              global_step=total_count)
-
-        tensorboard_writer.add_scalar(tag="Total loss", scalar_value=loss.item(), global_step=total_count)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -176,19 +157,6 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
             sensitivity = sensitivity_np(predict_segment, groundtruth_segment_data[num, 0])
             accuracy = accuracy_np(predict_segment, groundtruth_segment_data[num, 0])
 
-            total_count += 1
-            tensorboard_writer.add_scalar(tag="Dice Similarity Coefficient",
-                                          scalar_value=dice,
-                                          global_step=total_count)
-            tensorboard_writer.add_scalar(tag="Positive Probability",
-                                          scalar_value=ppv,
-                                          global_step=total_count)
-            tensorboard_writer.add_scalar(tag="Sensitivity",
-                                          scalar_value=sensitivity,
-                                          global_step=total_count)
-            tensorboard_writer.add_scalar(tag="Accuracy",
-                                          scalar_value=accuracy,
-                                          global_step=total_count)
             dice_list.append(dice)
             dice_hard_list.append(dice_hard)
             sensitivity_list.append(sensitivity)
@@ -196,6 +164,44 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
             ppv_list.append(ppv)
 
     end_time = time.time()
+
+    total_count += 1
+    # Calculate the mean values for pure_dice_loss_list, focal_loss_list
+    pure_dice_loss_mean_value = np.mean(np.array(pure_dice_loss_list))
+    tensorboard_writer.add_scalar(tag="Pure dice-loss mean value in train phase",
+                                  scalar_value=pure_dice_loss_mean_value,
+                                  global_step=total_count)
+    focal_loss_mean_value = np.mean(np.array(focal_loss_list))
+    tensorboard_writer.add_scalar(tag="Focal-loss mean value in train phase",
+                                  scalar_value=focal_loss_mean_value,
+                                  global_step=total_count)
+    # and if necessary, calculate the mean values for the belowing:
+    if args.deep_supervision:
+        deepsupervision6_dice_loss_mean_value = np.mean(np.array(deepsupervision6_dice_loss_list))
+        tensorboard_writer.add_scalar(tag="DeepSupervision6 dice-loss mean value in train phase",
+                                      scalar_value=deepsupervision6_dice_loss_mean_value,
+                                      global_step=total_count)
+        deepsupervision7_dice_loss_mean_value = np.mean(np.array(deepsupervision7_dice_loss_list))
+        tensorboard_writer.add_scalar(tag="DeepSupervision7 dice-loss mean value in train phase",
+                                      scalar_value=deepsupervision7_dice_loss_mean_value,
+                                      global_step=total_count)
+        deepsupervision8_dice_loss_mean_value = np.mean(np.array(deepsupervision8_dice_loss_list))
+        tensorboard_writer.add_scalar(tag="DeepSupervision8 dice-loss mean value in train phase",
+                                      scalar_value=deepsupervision8_dice_loss_mean_value,
+                                      global_step=total_count)
+    if args.encoder_path_ad:
+        encoder_ad_loss_mean_value = np.mean(np.array(encoder_ad_loss_list))
+        tensorboard_writer.add_scalar(tag="Encoder path AD-loss mean value in train phase",
+                                      scalar_value=encoder_ad_loss_mean_value,
+                                      global_step=total_count)
+    if args.decoder_path_ad:
+        decoder_ad_loss_mean_value = np.mean(np.array(decoder_ad_loss_list))
+        tensorboard_writer.add_scalar(tag="Decoder path AD-loss mean value in train phase",
+                                      scalar_value=decoder_ad_loss_mean_value,
+                                      global_step=total_count)
+    tensorboard_writer.flush()
+
+
     mean_dice = np.mean(np.array(dice_list))
     mean_dice_hard = np.mean(np.array(dice_hard_list))
     mean_ppv = np.mean(np.array(ppv_list))
@@ -203,15 +209,8 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
     mean_accuracy = np.mean(np.array(accuracy_list))
     mean_loss = np.mean(np.array(loss_list))
 
-    # log.warning("dice_list = {0}".format(dice_list))
-    # log.warning("dice_hard_list = {0}".format(dice_hard_list))
-    # log.warning("ppv_list = {0}".format(ppv_list))
-    # log.warning("sensitivity_list = {0}".format(sensitivity_list))
-    # log.warning("accuracy_list = {0}".format(accuracy_list))
-    # log.warning("loss_list = {0}".format(loss_list))
-
-    print("Training phase, epoch = #{0}, loss = {1:.4f}, accuracy = {2:.4f}, sensitivity = {3:.4f}, "
-          "dice = {4:.4f}, dice-hard = {5:.4f}, positive predictive value = {6:.4f}, "
+    print("train phase, epoch = #{0}, loss = {1:.4f}, accuracy = {2:.4f}, sensitivity = {3:.4f}, "
+          "dice-similarity-coefficient = {4:.4f}, dice-hard = {5:.4f}, positive-probability = {6:.4f}, "
           "elapsed-time = {7:3.2f}, learning-rate = {8:.6f}\n"
           .format(epoch, mean_loss, mean_accuracy, mean_sensitivity, mean_dice, mean_dice_hard,
                   mean_ppv, end_time - start_time, learning_rate))
@@ -243,6 +242,14 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
     casename_list = []
     loss_list = []
 
+    pure_dice_loss_list = []
+    deepsupervision6_dice_loss_list = []
+    deepsupervision7_dice_loss_list = []
+    deepsupervision8_dice_loss_list = []
+    focal_loss_list = []
+    encoder_ad_loss_list = []
+    decoder_ad_loss_list = []
+
     with torch.no_grad():
         log.warning("{1} progress......, in epoch #{0}"
                     .format(epoch, ("Validating" if phase == 'val' else 'Testing')))
@@ -268,22 +275,26 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
                 deepsupervision6, deepsupervision7, deepsupervision8 = predicts[1], predicts[2], predicts[3]
 
                 loss = dice_loss(predict, label_cube)
-                log.warning("dice_loss_value = {0:.5f}".format(loss.item()))
+                pure_dice_loss_list.append(loss.item())
+
                 dice_loss6 = dice_loss(deepsupervision6, label_cube)
-                log.warning("dice_loss6_value = {0:.5f}".format(dice_loss6.item()))
+                deepsupervision6_dice_loss_list.append(dice_loss6.item())
+
                 dice_loss7 = dice_loss(deepsupervision7, label_cube)
-                log.warning("dice_loss7_value = {0:.5f}".format(dice_loss7.item()))
+                deepsupervision7_dice_loss_list.append(dice_loss7.item())
+
                 dice_loss8 = dice_loss(deepsupervision8, label_cube)
-                log.warning("dice_loss8_value = {0:.5f}".format(dice_loss8))
+                deepsupervision8_dice_loss_list.append(dice_loss8.item())
 
                 loss += dice_loss6 + dice_loss7 + dice_loss8
             else:
                 predict = predicts
                 loss = dice_loss(predict, label_cube)
-                log.warning("dice_loss_value = {0:.5f}".format(loss.item()))
+                pure_dice_loss_list.append(loss.item())
 
-            loss += (focal_loss_value := focal_loss(predict, label_cube))
-            log.warning("focal_loss_value = {0:.5f}".format(focal_loss_value.item()))
+            focal_loss_value = focal_loss(predict, label_cube)
+            focal_loss_list.append(focal_loss_value.item())
+            loss += focal_loss_value
 
             if args.encoder_path_ad:
                 ad_gamma = [0.1, 0.1, 0.1]
@@ -291,16 +302,16 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
                     encoder_ad_loss = ad_gamma[index] * attention_distillation_loss(attentions[index],
                                                                                     attentions[index + 1],
                                                                                     encoder_flag=True)
+                    encoder_ad_loss_list.append(encoder_ad_loss.item())
                     loss += encoder_ad_loss
-                    log.warning("encoder_ad_loss_value = {0:.5f}".format(encoder_ad_loss.item()))
             if args.decoder_path_ad:
                 ad_gamma = [0.1, 0.1, 0.1]
                 for index in range(3, 6):   # attentions 3, 4, 5, 6
                     decoder_ad_loss = ad_gamma[index - 3] * attention_distillation_loss(attentions[index],
                                                                                         attentions[index + 1],
                                                                                         encoder_flag=False)
+                    decoder_ad_loss_list.append(decoder_ad_loss.item())
                     loss += decoder_ad_loss
-                    log.warning("decoder_ad_loss_value = {0:.5f}".format(decoder_ad_loss.item()))
 
             loss_list.append(loss.item())
             #---------------------------------------------------------------------------------------
@@ -371,6 +382,40 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
     stride = args.val_stride
     cube_size = args.val_cube_size
 
+    total_count += 1
+    pure_dice_loss_mean_value = np.mean(np.array(pure_dice_loss_list))
+    tensorboard_writer.add_scalar(tag="Pure dice-loss mean value in {0} phase".format(phase),
+                                  scalar_value=pure_dice_loss_mean_value,
+                                  global_step=total_count)
+    focal_loss_mean_value = np.mean(np.array(focal_loss_list))
+    tensorboard_writer.add_scalar(tag="Focal-loss mean value in {0} phase".format(phase),
+                                  scalar_value=focal_loss_mean_value,
+                                  global_step=total_count)
+    if args.deep_supervision:
+        deepsupervision6_dice_loss_mean_value = np.mean(np.array(deepsupervision6_dice_loss_list))
+        tensorboard_writer.add_scalar(tag="DeepSupervision6 dice-loss mean value in {0} phase".format(phase),
+                                      scalar_value=deepsupervision6_dice_loss_mean_value,
+                                      global_step=total_count)
+        deepsupervision7_dice_loss_mean_value = np.mean(np.array(deepsupervision7_dice_loss_list))
+        tensorboard_writer.add_scalar(tag="DeepSupervision7 dice-loss mean value in {0} phase".format(phase),
+                                      scalar_value=deepsupervision7_dice_loss_mean_value,
+                                      global_step=total_count)
+        deepsupervision8_dice_loss_mean_value = np.mean(np.array(deepsupervision8_dice_loss_list))
+        tensorboard_writer.add_scalar(tag="DeepSupervision8 dice-loss mean value in {0} phase".format(phase),
+                                      scalar_value=deepsupervision8_dice_loss_mean_value,
+                                      global_step=total_count)
+    if args.encoder_path_ad:
+        encoder_ad_loss_mean_value = np.mean(np.array(encoder_ad_loss_list))
+        tensorboard_writer.add_scalar(tag="Encoder path AD-loss mean value in {0} phase".format(phase),
+                                      scalar_value=encoder_ad_loss_mean_value,
+                                      global_step=total_count)
+    if args.decoder_path_ad:
+        decoder_ad_loss_mean_value = np.mean(np.array(decoder_ad_loss_list))
+        tensorboard_writer.add_scalar(tag="Decoder path AD-loss mean value in {0} phase".format(phase),
+                                      scalar_value=decoder_ad_loss_mean_value,
+                                      global_step=total_count)
+    tensorboard_writer.flush()
+
     for curr_name in input_total.keys():
         curr_input = input_total[curr_name]
         curr_groundtruth = groundtruth_total[curr_name]
@@ -397,20 +442,23 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
 
         total_count += 1
         tensorboard_writer.add_image(tag="{0}: groundtruth airway in epoch #{1}".format(curr_name, epoch),
-                                     img_tensor=groundtruth_airway_top_view,
+                                     img_tensor=np.flipud(groundtruth_airway_top_view),
                                      global_step=total_count,
                                      dataformats='HW')
         tensorboard_writer.add_image(tag="{0}: predicted airway in epoch #{1}".format(curr_name, epoch),
-                                     img_tensor=predicted_airway_top_view,
+                                     img_tensor=np.flipud(predicted_airway_top_view),
                                      global_step=total_count,
                                      dataformats='HW')
 
         raw_image_cuboid = input_combine
         depth, height, width = raw_image_cuboid.shape
-        middle_slice = raw_image_cuboid[depth // 2, :, :]
+        image_cuboid_middle_slice = raw_image_cuboid[:, height * 3 // 4, :]
+        label_cuboid_middle_slice = label_cuboid_np[:, height * 3 // 4, :]
+        predict_cuboid_middle_slice = predict_cuboid_np[:, height * 3 // 4, :]
+
         tensorboard_writer.add_image(tag="{0}: raw 3D image, slices[{1}] in epoch #{2}"
                                          .format(curr_name, depth//2, epoch),
-                                     img_tensor=middle_slice,
+                                     img_tensor=image_cuboid_middle_slice,
                                      global_step=total_count,
                                      dataformats='HW')
         tensorboard_writer.flush()
@@ -495,7 +543,7 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
 
     # Save [accuracy, sensitivity, dice, ppv] into a specified csv file.
     save_metrics_into_csvfile(save_dir,
-                              "{0}_results.csv".format(phase),
+                              "{0}_results_epoch{1}.csv".format(phase, epoch),
                               *[casename_list, accuracy_list, sensitivity_list, dice_list, ppv_list])
 
     mean_dice = np.mean(np.array(dice_list))
@@ -506,7 +554,8 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
     mean_loss = np.mean(np.array(loss_list))
 
     print("{0} phase, epoch = #{1}, loss = {2:.4f}, accuracy = {3:.4f}, sensitivity = {4:.4f}, "
-          "dice = {5:.4f}, dice-hard = {6:.4f}, positive predictive value = {7:.4f}, elapsed-time = {8:3.2f}\n"
+          "dice-similarity-coefficient = {5:.4f}, dice-hard = {6:.4f}, positive-probability = {7:.4f}, "
+          "elapsed-time = {8:3.2f}\n"
           .format(phase, epoch, mean_loss, mean_accuracy, mean_sensitivity, mean_dice, mean_dice_hard,
                   mean_ppv, end_time - start_time))
 
