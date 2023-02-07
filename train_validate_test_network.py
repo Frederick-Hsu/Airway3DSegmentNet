@@ -26,7 +26,7 @@ from various_loss_functions import dice_loss, \
 
 from utils import dice_coefficient_np, positive_predictive_value_np, sensitivity_np, accuracy_np
 from utils import combine_total, combine_total_avg, save_CT_scan_3D_image, normal_min_max
-from Visualization.visualize import visualize_segment_effect
+from Visualization.visualize import visualize_airway_tree_segment_effect, visualize_bronchus_segment_slices
 
 #===================================================================================================
 binary_threshold = 0.5
@@ -43,7 +43,7 @@ def get_learning_rate(epoch, args):
     return lr
 
 
-def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer, total_count):
+def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer):
     model.train()
 
     start_time = time.time()
@@ -165,40 +165,39 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
 
     end_time = time.time()
 
-    total_count += 1
     # Calculate the mean values for pure_dice_loss_list, focal_loss_list
     pure_dice_loss_mean_value = np.mean(np.array(pure_dice_loss_list))
     tensorboard_writer.add_scalar(tag="Pure dice-loss mean value in train phase",
                                   scalar_value=pure_dice_loss_mean_value,
-                                  global_step=total_count)
+                                  global_step=epoch)
     focal_loss_mean_value = np.mean(np.array(focal_loss_list))
     tensorboard_writer.add_scalar(tag="Focal-loss mean value in train phase",
                                   scalar_value=focal_loss_mean_value,
-                                  global_step=total_count)
+                                  global_step=epoch)
     # and if necessary, calculate the mean values for the belowing:
     if args.deep_supervision:
         deepsupervision6_dice_loss_mean_value = np.mean(np.array(deepsupervision6_dice_loss_list))
         tensorboard_writer.add_scalar(tag="DeepSupervision6 dice-loss mean value in train phase",
                                       scalar_value=deepsupervision6_dice_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
         deepsupervision7_dice_loss_mean_value = np.mean(np.array(deepsupervision7_dice_loss_list))
         tensorboard_writer.add_scalar(tag="DeepSupervision7 dice-loss mean value in train phase",
                                       scalar_value=deepsupervision7_dice_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
         deepsupervision8_dice_loss_mean_value = np.mean(np.array(deepsupervision8_dice_loss_list))
         tensorboard_writer.add_scalar(tag="DeepSupervision8 dice-loss mean value in train phase",
                                       scalar_value=deepsupervision8_dice_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
     if args.encoder_path_ad:
         encoder_ad_loss_mean_value = np.mean(np.array(encoder_ad_loss_list))
         tensorboard_writer.add_scalar(tag="Encoder path AD-loss mean value in train phase",
                                       scalar_value=encoder_ad_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
     if args.decoder_path_ad:
         decoder_ad_loss_mean_value = np.mean(np.array(decoder_ad_loss_list))
         tensorboard_writer.add_scalar(tag="Decoder path AD-loss mean value in train phase",
                                       scalar_value=decoder_ad_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
     tensorboard_writer.flush()
 
 
@@ -220,7 +219,7 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
 
 
 #---------------------------------------------------------------------------------------------------
-def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tensorboard_writer, total_count):
+def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tensorboard_writer):
     model.eval()
 
     start_time = time.time()
@@ -382,38 +381,37 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
     stride = args.val_stride
     cube_size = args.val_cube_size
 
-    total_count += 1
     pure_dice_loss_mean_value = np.mean(np.array(pure_dice_loss_list))
     tensorboard_writer.add_scalar(tag="Pure dice-loss mean value in {0} phase".format(phase),
                                   scalar_value=pure_dice_loss_mean_value,
-                                  global_step=total_count)
+                                  global_step=epoch)
     focal_loss_mean_value = np.mean(np.array(focal_loss_list))
     tensorboard_writer.add_scalar(tag="Focal-loss mean value in {0} phase".format(phase),
                                   scalar_value=focal_loss_mean_value,
-                                  global_step=total_count)
+                                  global_step=epoch)
     if args.deep_supervision:
         deepsupervision6_dice_loss_mean_value = np.mean(np.array(deepsupervision6_dice_loss_list))
         tensorboard_writer.add_scalar(tag="DeepSupervision6 dice-loss mean value in {0} phase".format(phase),
                                       scalar_value=deepsupervision6_dice_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
         deepsupervision7_dice_loss_mean_value = np.mean(np.array(deepsupervision7_dice_loss_list))
         tensorboard_writer.add_scalar(tag="DeepSupervision7 dice-loss mean value in {0} phase".format(phase),
                                       scalar_value=deepsupervision7_dice_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
         deepsupervision8_dice_loss_mean_value = np.mean(np.array(deepsupervision8_dice_loss_list))
         tensorboard_writer.add_scalar(tag="DeepSupervision8 dice-loss mean value in {0} phase".format(phase),
                                       scalar_value=deepsupervision8_dice_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
     if args.encoder_path_ad:
         encoder_ad_loss_mean_value = np.mean(np.array(encoder_ad_loss_list))
         tensorboard_writer.add_scalar(tag="Encoder path AD-loss mean value in {0} phase".format(phase),
                                       scalar_value=encoder_ad_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
     if args.decoder_path_ad:
         decoder_ad_loss_mean_value = np.mean(np.array(decoder_ad_loss_list))
         tensorboard_writer.add_scalar(tag="Decoder path AD-loss mean value in {0} phase".format(phase),
                                       scalar_value=decoder_ad_loss_mean_value,
-                                      global_step=total_count)
+                                      global_step=epoch)
     tensorboard_writer.flush()
 
     for curr_name in input_total.keys():
@@ -440,28 +438,32 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
         groundtruth_airway_top_view = np.sum(label_cuboid_np, axis=1)
         predicted_airway_top_view = np.sum(predict_cuboid_np, axis=1)
 
-        total_count += 1
-        tensorboard_writer.add_image(tag="{0}: groundtruth airway in epoch #{1}".format(curr_name, epoch),
+        tensorboard_writer.add_image(tag="{0}: groundtruth airway in {1} epoch #{2}".format(curr_name, phase, epoch),
                                      img_tensor=np.flipud(groundtruth_airway_top_view),
-                                     global_step=total_count,
+                                     global_step=epoch,
                                      dataformats='HW')
-        tensorboard_writer.add_image(tag="{0}: predicted airway in epoch #{1}".format(curr_name, epoch),
+        tensorboard_writer.add_image(tag="{0}: predicted airway in {1} epoch #{2}".format(curr_name, phase, epoch),
                                      img_tensor=np.flipud(predicted_airway_top_view),
-                                     global_step=total_count,
+                                     global_step=epoch,
                                      dataformats='HW')
 
-        raw_image_cuboid = input_combine
-        depth, height, width = raw_image_cuboid.shape
-        image_cuboid_middle_slice = raw_image_cuboid[:, height * 3 // 4, :]
-        label_cuboid_middle_slice = label_cuboid_np[:, height * 3 // 4, :]
-        predict_cuboid_middle_slice = predict_cuboid_np[:, height * 3 // 4, :]
+        visualize_airway_tree_segment_effect(epoch_num=epoch,
+                                             phase=phase,
+                                             case_name=curr_name,
+                                             raw_image_cuboid=input_combine,
+                                             label_cuboid=label_combine,
+                                             segment_cuboid=pred_combine_binarythreshold,
+                                             save_dir=save_dir,
+                                             tensorboard_writer=tensorboard_writer)
 
-        tensorboard_writer.add_image(tag="{0}: raw 3D image, slices[{1}] in epoch #{2}"
-                                         .format(curr_name, depth//2, epoch),
-                                     img_tensor=image_cuboid_middle_slice,
-                                     global_step=total_count,
-                                     dataformats='HW')
-        tensorboard_writer.flush()
+        visualize_bronchus_segment_slices(epoch_num=epoch,
+                                          phase=phase,
+                                          case_name=curr_name,
+                                          raw_image_cuboid=input_combine,
+                                          label_cuboid=label_combine,
+                                          segment_cuboid=pred_combine_binarythreshold,
+                                          save_dir=save_dir,
+                                          tensorboard_writer=tensorboard_writer)
 
 
         #-------------------------------------------------------------------------------------------
@@ -498,22 +500,21 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
             feat8_airway_top_view = np.sum(feat8_cuboid_np, axis=1)
             feat9_airway_top_view = np.sum(feat9_cuboid_np, axis=1)
 
-            total_count += 1
-            tensorboard_writer.add_image(tag="Epoch #{0}, {1}: attention distillation mapping6".format(epoch, curr_name),
-                                         img_tensor=feat6_airway_top_view,
-                                         global_step=total_count,
+            tensorboard_writer.add_image(tag="{0} epoch #{1}, {2}: attention distillation mapping6".format(phase, epoch, curr_name),
+                                         img_tensor=np.flipud(feat6_airway_top_view),
+                                         global_step=epoch,
                                          dataformats='HW')
-            tensorboard_writer.add_image(tag="Epoch #{0}, {1}: attention distillation mapping7".format(epoch, curr_name),
-                                         img_tensor=feat7_airway_top_view,
-                                         global_step=total_count,
+            tensorboard_writer.add_image(tag="{0} epoch #{1}, {2}: attention distillation mapping7".format(phase, epoch, curr_name),
+                                         img_tensor=np.flipud(feat7_airway_top_view),
+                                         global_step=epoch,
                                          dataformats='HW')
-            tensorboard_writer.add_image(tag="Epoch #{0}, {1}: attention distillation mapping8".format(epoch, curr_name),
-                                         img_tensor=feat8_airway_top_view,
-                                         global_step=total_count,
+            tensorboard_writer.add_image(tag="{0} epoch #{1}, {2}: attention distillation mapping8".format(phase, epoch, curr_name),
+                                         img_tensor=np.flipud(feat8_airway_top_view),
+                                         global_step=epoch,
                                          dataformats='HW')
-            tensorboard_writer.add_image(tag="Epoch #{0}, {1}: attention distillation mapping9".format(epoch, curr_name),
-                                         img_tensor=feat9_airway_top_view,
-                                         global_step=total_count,
+            tensorboard_writer.add_image(tag="{0} epoch #{1}, {2}: attention distillation mapping9".format(phase, epoch, curr_name),
+                                         img_tensor=np.flipud(feat9_airway_top_view),
+                                         global_step=epoch,
                                          dataformats='HW')
             tensorboard_writer.flush()
 
