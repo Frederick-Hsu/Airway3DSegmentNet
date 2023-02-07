@@ -11,14 +11,14 @@
 
 module load miniconda3
 
-source activate ~/.conda/envs/jupyter-spyder-pytorch-env
+source activate ~/.conda/envs/my-dissertation-env
 
-which python
+which python3
 
-python --version
+python3 --version
 
 # Training the baseline UNet3D + Feature Recalibration + Attention Distillation model
-python Airway3DSegmentation.py --model=baseline_fr --batch-size=4 --num-workers=3 --save-dir=baseline_fr_ad \
+python3 Airway3DSegmentation.py --model=baseline_fr --batch-size=4 --num-workers=3 --save-dir=baseline_fr_ad \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=1 \
@@ -26,7 +26,7 @@ python Airway3DSegmentation.py --model=baseline_fr --batch-size=4 --num-workers=
 
 
 # Validating
-python Airway3DSegmentation.py --model=baseline_fr --batch-size=4 --num-workers=3 --save-dir=baseline_fr_ad \
+python3 Airway3DSegmentation.py --model=baseline_fr --batch-size=4 --num-workers=3 --save-dir=baseline_fr_ad \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=1 \
@@ -35,7 +35,7 @@ python Airway3DSegmentation.py --model=baseline_fr --batch-size=4 --num-workers=
 
 
 # Testing
-python Airway3DSegmentation.py --model=baseline_fr --batch-size=4 --num-workers=3 --save-dir=baseline_fr_ad \
+python3 Airway3DSegmentation.py --model=baseline_fr --batch-size=4 --num-workers=3 --save-dir=baseline_fr_ad \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=1 \
