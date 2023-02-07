@@ -63,8 +63,6 @@ class Airway3DSegmentation:
         self.init_optimizer()
         self.prepare_log_dir()
 
-        self.total_count = 0
-
     #-----------------------------------------------------------------------------------------------
     def training(self):
         # Initialize the Tensor Board
@@ -103,8 +101,7 @@ class Airway3DSegmentation:
                               data_loader=train_data_loader,
                               optimizer=self.optimizer,
                               args=self.cli_args,
-                              tensorboard_writer=self.tensorboard_writer,
-                              total_count=self.total_count)
+                              tensorboard_writer=self.tensorboard_writer)
 
             self.tensorboard_writer.add_scalar(tag='train_mean_loss', scalar_value=train_mean_loss, global_step=epoch)
             self.tensorboard_writer.add_scalar(tag='train_mean_accuracy', scalar_value=train_mean_accuracy, global_step=epoch)
@@ -146,8 +143,7 @@ class Airway3DSegmentation:
                                           data_loader=val_data_loader,
                                           args=self.cli_args,
                                           save_dir=val_dir,
-                                          tensorboard_writer=self.tensorboard_writer,
-                                          total_count=self.total_count)
+                                          tensorboard_writer=self.tensorboard_writer)
 
                 self.tensorboard_writer.add_scalar(tag='val_mean_loss', scalar_value=val_mean_loss, global_step=epoch)
                 self.tensorboard_writer.add_scalar(tag='val_mean_accuracy', scalar_value=val_mean_accuracy, global_step=epoch)
@@ -178,8 +174,7 @@ class Airway3DSegmentation:
                                           data_loader=test_data_loader,
                                           args=self.cli_args,
                                           save_dir=test_dir,
-                                          tensorboard_writer=self.tensorboard_writer,
-                                          total_count=self.total_count)
+                                          tensorboard_writer=self.tensorboard_writer)
 
                 self.tensorboard_writer.add_scalar(tag='test_mean_loss', scalar_value=test_mean_loss, global_step=epoch)
                 self.tensorboard_writer.add_scalar(tag='test_mean_accuracy', scalar_value=test_mean_accuracy, global_step=epoch)
@@ -280,8 +275,7 @@ class Airway3DSegmentation:
                                   data_loader=val_data_loader,
                                   args=self.cli_args,
                                   save_dir=validate_dir,
-                                  tensorboard_writer=self.tensorboard_writer,
-                                  total_count=self.total_count)
+                                  tensorboard_writer=self.tensorboard_writer)
         self.tensorboard_writer.close()
         print("Validating DONE!")
 
@@ -303,8 +297,7 @@ class Airway3DSegmentation:
                                   data_loader=test_data_loader,
                                   args=self.cli_args,
                                   save_dir=test_dir,
-                                  tensorboard_writer=self.tensorboard_writer,
-                                  total_count=self.total_count)
+                                  tensorboard_writer=self.tensorboard_writer)
         self.tensorboard_writer.close()
         print("Testing DONE!")
 
