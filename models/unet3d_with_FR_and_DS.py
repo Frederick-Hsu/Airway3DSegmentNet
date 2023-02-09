@@ -70,7 +70,7 @@ class UNet3DWithFeatureRecalibrationAndDeepSupervision(UNet3DWithFeatureRecalibr
         deep_supervision8 = self.final_sigmoid(self.upsampling2(self.deep_supervision_conv8(recal_feat8)))
 
         upsample8 = self.upsampling(recal_feat8)
-        concat_upsample8_recalfeat1 = torch.cat([upsample8, recal_feat1])
+        concat_upsample8_recalfeat1 = torch.cat([upsample8, recal_feat1], dim=1)
         conv9 = self.conv9(concat_upsample8_recalfeat1)
         recal_feat9, ad_mapping9 = self.FR9(conv9)
 
