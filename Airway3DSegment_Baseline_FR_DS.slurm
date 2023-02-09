@@ -3,7 +3,7 @@
 #SBATCH --job-name=FR_DS_UNet3D_Airway3DSegment
 #SBATCH --partition=dgx2
 #SBATCH -n 8
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:4
 #SBATCH --output=Airway3DSegment_Baseline_FR_DS_%j.out
 #SBATCH --error=Airway3DSegment_Baseline_FR_DS_%j.err
 #SBATCH --mail-type=end
@@ -18,7 +18,7 @@ which python3
 python3 --version
 
 # Training the baseline UNet3D + Feature Recalibration + Deep Supervision model
-python3 Airway3DSegmentation.py --model=baseline_fr_ds --batch-size=4 --num-workers=3 --save-dir=baseline_fr_ds \
+python3 Airway3DSegmentation.py --model=baseline_fr_ds --batch-size=8 --num-workers=7 --save-dir=baseline_fr_ds \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=0 --deep-supervision=1 \
@@ -26,7 +26,7 @@ python3 Airway3DSegmentation.py --model=baseline_fr_ds --batch-size=4 --num-work
 
 
 # Validating
-python3 Airway3DSegmentation.py --model=baseline_fr_ds --batch-size=4 --num-workers=3 --save-dir=baseline_fr_ds \
+python3 Airway3DSegmentation.py --model=baseline_fr_ds --batch-size=8 --num-workers=7 --save-dir=baseline_fr_ds \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=0 --deep-supervision=1 \
@@ -35,7 +35,7 @@ python3 Airway3DSegmentation.py --model=baseline_fr_ds --batch-size=4 --num-work
 
 
 # Testing
-python3 Airway3DSegmentation.py --model=baseline_fr_ds --batch-size=4 --num-workers=3 --save-dir=baseline_fr_ds \
+python3 Airway3DSegmentation.py --model=baseline_fr_ds --batch-size=8 --num-workers=7 --save-dir=baseline_fr_ds \
 --train-cube-size 80 192 304 --train-stride 64 96 152 --val-cube-size 80 192 304 --val-stride 64 72 72 \
 --start-epoch=1 --epochs=60 --sgd=0 --randsel=0 --multi-gpu-parallel=1 \
 --encoder-path-ad=0 --decoder-path-ad=0 --deep-supervision=1 \
