@@ -433,26 +433,13 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
         save_CT_scan_3D_image(label_combine.astype(dtype='uint8'), curr_origin, curr_spacing, curr_label_path)
         save_CT_scan_3D_image(pred_combine_binarythreshold.astype(dtype='uint8'), curr_origin, curr_spacing, curr_pred_path)
 
-        label_cuboid_np = label_combine.astype(dtype='uint8')
-        predict_cuboid_np = pred_combine_binarythreshold.astype(dtype='uint8')
-        groundtruth_airway_top_view = np.sum(label_cuboid_np, axis=1)
-        predicted_airway_top_view = np.sum(predict_cuboid_np, axis=1)
-
-        tensorboard_writer.add_image(tag="{0}: groundtruth airway in {1} epoch #{2}".format(curr_name, phase, epoch),
-                                     img_tensor=np.flipud(groundtruth_airway_top_view),
-                                     global_step=epoch,
-                                     dataformats='HW')
-        tensorboard_writer.add_image(tag="{0}: predicted airway in {1} epoch #{2}".format(curr_name, phase, epoch),
-                                     img_tensor=np.flipud(predicted_airway_top_view),
-                                     global_step=epoch,
-                                     dataformats='HW')
-
         visualize_airway_tree_segment_effect(epoch_num=epoch,
                                              phase=phase,
                                              case_name=curr_name,
-                                             raw_image_cuboid=input_combine,
                                              label_cuboid=label_combine,
                                              segment_cuboid=pred_combine_binarythreshold,
+                                             origin=curr_origin,
+                                             spacing=curr_spacing,
                                              save_dir=save_dir,
                                              tensorboard_writer=tensorboard_writer)
 
