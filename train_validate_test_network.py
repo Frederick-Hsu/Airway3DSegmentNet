@@ -27,6 +27,13 @@ from various_loss_functions import dice_loss, \
 from utils import dice_coefficient_np, positive_predictive_value_np, sensitivity_np, accuracy_np
 from utils import combine_total, combine_total_avg, save_CT_scan_3D_image, normal_min_max
 from Visualization.visualize import visualize_airway_tree_segment_effect, visualize_bronchus_segment_slices
+from metrics_calculation import branch_detected, \
+                                tree_length_detected, \
+                                false_positive_rate_calculation, \
+                                false_negative_rate_calculation, \
+                                sensitivity_calculation, \
+                                precision_calculation, \
+                                dice_coefficient_score_calculation
 
 #===================================================================================================
 binary_threshold = 0.5
@@ -449,6 +456,37 @@ def validate_test_network(epoch, phase, model, data_loader, args, save_dir, tens
                                           save_dir=save_dir,
                                           tensorboard_writer=tensorboard_writer)
 
+        # Calculate the metrics and save them to tensor board
+        FPR = false_positive_rate_calculation(pred=pred_combine_binarythreshold, label=label_combine)
+        FNR = false_negative_rate_calculation(pred=pred_combine_binarythreshold, label=label_combine)
+        Sensitivity = sensitivity_calculation(pred=pred_combine_binarythreshold, label=label_combine)
+        Precision = precision_calculation(pred=pred_combine_binarythreshold, label=label_combine)
+        DSC = dice_coefficient_score_calculation(pred=pred_combine_binarythreshold, label=label_combine)
+        BD = branch_detected(predict=pred_combine_binarythreshold, groundtruth=label_combine)
+        TD = tree_length_detected(predict=pred_combine_binarythreshold, groundtruth=label_combine)
+
+        tensorboard_writer.add_scalar(tag="{0}: False Positive Rate at {1} phase".format(curr_name, phase),
+                                      scalar_value=FPR,
+                                      global_step=epoch)
+        tensorboard_writer.add_scalar(tag="{0}: False Negative Rate at {1} phase".format(curr_name, phase),
+                                      scalar_value=FNR,
+                                      global_step=epoch)
+        tensorboard_writer.add_scalar(tag="{0}: Sensitivity = True Positive Rate at {1} phase".format(curr_name, phase),
+                                      scalar_value=Sensitivity,
+                                      global_step=epoch)
+        tensorboard_writer.add_scalar(tag="{0}: Precision at {1} phase".format(curr_name, phase),
+                                      scalar_value=Precision,
+                                      global_step=epoch)
+        tensorboard_writer.add_scalar(tag="{0}: DSC at {1} phase".format(curr_name, phase),
+                                      scalar_value=DSC,
+                                      global_step=epoch)
+        tensorboard_writer.add_scalar(tag="{0}: Branch Detected Rate at {1} phase".format(curr_name, phase),
+                                      scalar_value=BD,
+                                      global_step=epoch)
+        tensorboard_writer.add_scalar(tag="{0}: Tree Length Detected at {1} phase".format(curr_name, phase),
+                                      scalar_value=TD,
+                                      global_step=epoch)
+        tensorboard_writer.flush()
 
         #-------------------------------------------------------------------------------------------
         if args.save_feature:

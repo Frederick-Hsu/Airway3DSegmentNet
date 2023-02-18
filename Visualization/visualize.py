@@ -38,19 +38,6 @@ def visualize_airway_tree_segment_effect(epoch_num,
                                                               spacing,
                                                               niigz_file_name)
     FPR, TPR, FNR, DSC = metrics
-    tensorboard_writer.add_scalar(tag="{0}: False Positive Rate at {1} phase".format(case_name, phase),
-                                  scalar_value=FPR,
-                                  global_step=epoch_num)
-    tensorboard_writer.add_scalar(tag="{0}: True Positive Rate at {1} phase".format(case_name, phase),
-                                  scalar_value=TPR,
-                                  global_step=epoch_num)
-    tensorboard_writer.add_scalar(tag="{0}: False Negative Rate at {1} phase".format(case_name, phase),
-                                  scalar_value=FPR,
-                                  global_step=epoch_num)
-    tensorboard_writer.add_scalar(tag="{0}: DSC at {1} phase".format(case_name, phase),
-                                  scalar_value=DSC,
-                                  global_step=epoch_num)
-
     niigz_file_name = "{0}/{1}_airway_tree_with_2colors_at_{2}_epoch{3}.nii.gz".format(save_dir,
                                                                                        case_name,
                                                                                        phase,
