@@ -443,7 +443,7 @@ if __name__ == "__main__":
     TreeLengthDetected = tree_length_detected(segment_pred_npy, groundtruth_npy)
     BranchDetected = branch_detected(segment_pred_npy, groundtruth_npy)
     
-    print("Metrics: FPR = {0}%, FNR = {1}%, Sensitivity = {2}%, DSC = {3}, Precision = {4}%, TLD = {5}%, BD = {6}%"
+    print("Metrics: FPR = {0}%, FNR = {1}%, Sensitivity = TPR = {2}%, DSC = {3}, Precision = {4}%, TLD = {5}%, BD = {6}%"
           .format(FalsePositiveRate, FalseNegativeRate, Sensitivity, DiceSimilarityCoefficient, 
                   Precision, TreeLengthDetected, BranchDetected))
     
