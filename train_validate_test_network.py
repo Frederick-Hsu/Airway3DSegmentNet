@@ -115,9 +115,6 @@ def train_network(epoch, model, data_loader, optimizer, args, tensorboard_writer
 
         loss += focal_loss_value
 
-        # loss += (BCEL_value := binary_cross_entropy_loss(predict, label_cube))
-        # log.warning("binary_cross_entropy_loss_value = {0:.5f}".format(BCEL_value.item()))
-
         if args.encoder_path_ad:
             # If the attention distillation was enabled in the encoder path, namely down-sampling path
             ad_gamma = [0.1, 0.1, 0.1]
