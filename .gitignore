@@ -18,4 +18,5 @@
 .ipynb_checkpoints/*
 .ipynb_checkpoints/
 results/
+results*/
 */**/tensorboard/*
