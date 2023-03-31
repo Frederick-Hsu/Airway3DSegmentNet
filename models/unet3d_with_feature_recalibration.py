@@ -142,23 +142,42 @@ class FeatureRecalibrationModule(nn.Module):
 
         # Weight along channels and different axes
         Depth, Height, Width = self.spatial_dimension[0], self.spatial_dimension[1], self.spatial_dimension[2]
-        Depth_axis = input_tensor.permute(0, 2, 1, 3, 4)        # Batch, Depth,  Channel, Height,  Width
-        Height_axis = input_tensor.permute(0, 3, 2, 1, 4)       # Batch, Height, Depth,   Channel, Width
+        # input_tensor                                                                                B, C, D, H, W
+        Depth_axis = input_tensor.permute(0, 2, 1, 3, 4)                                            # B, D, C, H, W
+        Height_axis = input_tensor.permute(0, 3, 2, 1, 4)                                           # B, H, D, C, W
 
+        squeeze_tensor_1D = self.Depth_squeeze(Depth_axis)                                          # B, 1, C, H, W
+
+        squeeze_tensor_along_W = squeeze_tensor_1D.permute(0, 3, 1, 2, 4)                           # B, H, 1, C, W
+        squeeze_tensor_along_W = self.Height_squeeze(squeeze_tensor_along_W).permute(0, 3, 2, 1, 4) # B, C, 1, 1, W
+
+        squeeze_tensor_along_H = squeeze_tensor_1D.permute(0, 4, 1, 3, 2)                           # B, W, 1, H, C
+        squeeze_tensor_along_H = self.Width_squeeze(squeeze_tensor_along_H).permute(0, 4, 2, 3, 1)  # B, C, 1, H, 1
+
+        squeeze_tensor_along_D = self.Height_squeeze(Height_axis).permute(0, 4, 2, 1, 3)            # B, W, D, 1, C
+        squeeze_tensor_along_D = self.Width_squeeze(squeeze_tensor_along_D).permute(0, 4, 2, 3, 1)  # B, C, D, 1, 1
+
+        Z_spatial_integration = squeeze_tensor_along_W + squeeze_tensor_along_H + squeeze_tensor_along_D
+
+        r'''
         # Step1: spatial map that highlights important regions is integrated through Z_spatial(*) along
         #        3 axes of depth, height and width.
         Z_spatial_integration_on_Depth = self.Height_squeeze(Height_axis).permute(0, 4, 2, 1, 3)
         Z_spatial_integration_on_Depth = self.Width_squeeze(Z_spatial_integration_on_Depth).permute(0, 4, 2, 3, 1)
+        #===========================================================================================
 
         Z_spatial_integration_on_Height = self.Depth_squeeze(Depth_axis).permute(0, 4, 1, 3, 2)
         Z_spatial_integration_on_Height = self.Width_squeeze(Z_spatial_integration_on_Height).permute(0, 4, 2, 3, 1)
+        #===========================================================================================
 
         Z_spatial_integration_on_Width = self.Depth_squeeze(Depth_axis).permute(0, 3, 1, 2, 4)
         Z_spatial_integration_on_Width = self.Height_squeeze(Z_spatial_integration_on_Width).permute(0, 3, 2, 1, 4)
+        #===========================================================================================
 
         Z_spatial_integration = Z_spatial_integration_on_Depth + \
                                 Z_spatial_integration_on_Height + \
                                 Z_spatial_integration_on_Width
+        '''
 
         # Step2: Channel recombination is performed on the spatial map to compute the channel descriptor Um
         channel_descriptor = self.conv_module(Z_spatial_integration)

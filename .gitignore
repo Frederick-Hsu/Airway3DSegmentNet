@@ -13,6 +13,7 @@
 *.err
 *.out
 *.png
+*.ipynb
 
 .idea/
 .ipynb_checkpoints/*
@@ -20,3 +21,4 @@
 results/
 results*/
 */**/tensorboard/*
+old_results/
